@@ -72,7 +72,31 @@ les deux joueurs.
 
 > Le fichier `.env` contient vos clés — il est ignoré par git (voir `.gitignore`).
 
-### Déploiement (optionnel) sur Firebase Hosting
+### Déploiement sur GitHub Pages (recommandé)
+
+Le jeu se déploie automatiquement sur **GitHub Pages** via GitHub Actions
+([`.github/workflows/deploy-pages.yml`](./.github/workflows/deploy-pages.yml))
+à chaque push sur `main`, ou manuellement depuis l'onglet **Actions**.
+
+Firebase reste le backend temps réel (Firestore + Auth) ; GitHub Pages ne sert
+que les fichiers statiques du build. La configuration Firebase utilisée pour ce
+build est dans [`.env.production`](./.env.production) — **ce fichier est
+committé volontairement** : la clé API web Firebase n'est pas un secret (la
+sécurité vient des règles [`firestore.rules`](./firestore.rules), pas de la clé).
+
+**Configuration à faire une seule fois, dans les paramètres du dépôt GitHub :**
+
+1. *Settings → Pages → Build and deployment → Source* : sélectionnez **GitHub Actions**.
+2. Poussez (ou mergez) sur `main` — le workflow se déclenche automatiquement.
+3. Le site sera disponible sur `https://oignonmetro.github.io/leszamis/`.
+
+Vous pouvez aussi déclencher le déploiement manuellement : onglet **Actions**
+→ *Déployer sur GitHub Pages* → **Run workflow**.
+
+> Si vous changez de nom de dépôt, mettez à jour le chemin `base` dans
+> `vite.config.js` (`/leszamis/`) pour qu'il corresponde à la nouvelle URL.
+
+#### Alternative : Firebase Hosting
 
 ```bash
 npm run build
