@@ -2,21 +2,31 @@ rules_version = '2';
 
 // Règles de sécurité pour « À l'unisson ».
 // Modèle : un document par partie dans la collection `games`.
-// Approche pragmatique (jeu de fête, pas de données sensibles) :
-//  - il faut être authentifié (Anonymous Auth) pour toucher aux parties ;
-//  - on ne peut créer une partie que si l'on en est le host ;
-//  - on ne peut modifier une partie que si l'on y participe déjà,
-//    ou si l'on est en train de la rejoindre (2e joueur).
+//
+// Ces règles NE SONT PAS ouvertes/publiques :
+//  - toute opération exige une authentification (Anonymous Auth) ;
+//  - la lecture est limitée à `get` : on ne peut lire une partie QUE si l'on
+//    connaît son code (l'id du document). La lecture `list` est interdite,
+//    donc impossible d'énumérer ou d'aspirer l'ensemble des parties ;
+//  - on ne peut créer une partie que si l'on s'y déclare comme hôte ;
+//  - on ne peut modifier une partie que si l'on y participe déjà, ou si l'on
+//    est en train de la rejoindre (2e joueur) ;
+//  - aucune suppression côté client.
+//
+// (La lecture par un non-participant est nécessaire pour l'étape « rejoindre » :
+//  on lit d'abord la partie via son code avant de s'y ajouter. Elle reste
+//  protégée par le fait qu'il faut connaître le code exact.)
 service cloud.firestore {
   match /databases/{database}/documents {
 
+    // Tout le reste de la base est fermé par défaut (aucune règle → refus).
     match /games/{code} {
 
-      // N'importe quel utilisateur authentifié peut lire une partie
-      // (nécessaire pour rejoindre via un code).
-      allow read: if request.auth != null;
+      // Lecture d'UNE partie connue par son code uniquement (pas de `list`).
+      allow get: if request.auth != null;
+      allow list: if false;
 
-      // Création : le créateur doit se déclarer comme host.
+      // Création : le créateur doit se déclarer comme hôte.
       allow create: if request.auth != null
                     && request.resource.data.hostUid == request.auth.uid
                     && request.resource.data.players[request.auth.uid] != null;
