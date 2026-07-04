@@ -1,0 +1,28 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+dist-ssr/
+
+# Local env files (contain your Firebase keys)
+.env
+.env.local
+.env.*.local
+
+# Firebase emulator / debug
+firebase-debug.log
+firestore-debug.log
+ui-debug.log
+.firebase/
+firebase-export-*/
+
+# Editor / OS
+.vscode/
+.idea/
+.DS_Store
+*.log
+
+# Playwright / test artifacts
+playwright-report/
+test-results/

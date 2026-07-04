@@ -1,0 +1,37 @@
+rules_version = '2';
+
+// Règles de sécurité pour « À l'unisson ».
+// Modèle : un document par partie dans la collection `games`.
+// Approche pragmatique (jeu de fête, pas de données sensibles) :
+//  - il faut être authentifié (Anonymous Auth) pour toucher aux parties ;
+//  - on ne peut créer une partie que si l'on en est le host ;
+//  - on ne peut modifier une partie que si l'on y participe déjà,
+//    ou si l'on est en train de la rejoindre (2e joueur).
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    match /games/{code} {
+
+      // N'importe quel utilisateur authentifié peut lire une partie
+      // (nécessaire pour rejoindre via un code).
+      allow read: if request.auth != null;
+
+      // Création : le créateur doit se déclarer comme host.
+      allow create: if request.auth != null
+                    && request.resource.data.hostUid == request.auth.uid
+                    && request.resource.data.players[request.auth.uid] != null;
+
+      // Mise à jour : participant existant, ou joueur en train de rejoindre.
+      allow update: if request.auth != null
+                    && (
+                      // déjà dans la partie
+                      resource.data.players[request.auth.uid] != null
+                      // ou en train de s'ajouter comme joueur
+                      || request.resource.data.players[request.auth.uid] != null
+                    );
+
+      // Pas de suppression côté client (les parties expirent naturellement).
+      allow delete: if false;
+    }
+  }
+}

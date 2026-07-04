@@ -1,0 +1,29 @@
+{
+  "name": "leszamis",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "À l'unisson — jeu de couple en temps réel : répondez chacun de votre côté et marquez des points quand vos réponses coïncident.",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "emulators": "firebase emulators:start --only auth,firestore",
+    "dev:emulator": "cross-env VITE_USE_EMULATOR=1 vite"
+  },
+  "dependencies": {
+    "firebase": "^10.13.2",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^4.3.1",
+    "cross-env": "^7.0.3",
+    "firebase-tools": "^15.22.4",
+    "jsdom": "^25.0.0",
+    "vite": "^5.4.2",
+    "vitest": "^2.0.5"
+  }
+}
