@@ -54,7 +54,7 @@ export default function Home({ game }) {
         </label>
       </div>
 
-      <div className="card">
+      <div className="card stack">
         <button className="btn btn-primary" disabled={busy} onClick={handleCreate}>
           {busy ? 'Création…' : 'Créer une partie'}
         </button>
