@@ -41,6 +41,7 @@ export default function Reveal({ uid, game }) {
 
       <div className={'verdict ' + (counted ? 'match' : 'nomatch')}>
         {counted ? '✅ En accord !' : '❌ Réponses différentes'}
+        {counted && <div className="verdict-points">+1 point</div>}
       </div>
 
       <div className="answers">
