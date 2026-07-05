@@ -39,7 +39,7 @@ export default function Home({ game }) {
     <div className="screen">
       <div className="hero">
         <div className="brand">À l’unisson</div>
-        <p className="tagline">Répondez chacun de votre côté. Marquez un point à chaque fois que vous pensez pareil. 💞</p>
+        <p className="tagline">Répondez chacun de votre côté. Marquez un point à chaque fois que vous pensez pareil.</p>
       </div>
 
       {!mode && (
