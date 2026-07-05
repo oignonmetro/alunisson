@@ -166,6 +166,7 @@ input:focus { border-color: var(--primary); }
 .verdict { text-align: center; font-size: 22px; font-weight: 800; padding: 8px; }
 .verdict.match { color: var(--ok); }
 .verdict.nomatch { color: var(--ko); }
+.verdict-points { font-size: 14px; font-weight: 700; color: var(--ok); margin-top: 2px; }
 .answers { display: flex; flex-direction: column; gap: 10px; }
 .answer-row {
   display: flex; justify-content: space-between; align-items: center; gap: 12px;
