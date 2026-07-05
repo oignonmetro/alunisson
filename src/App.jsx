@@ -1,11 +1,13 @@
 import { useAuth } from './hooks/useAuth.js'
 import { useGame } from './hooks/useGame.js'
 import { isFirebaseConfigured } from './firebase.js'
+import { playerUids } from './lib/players.js'
 import Home from './screens/Home.jsx'
 import Lobby from './screens/Lobby.jsx'
 import Question from './screens/Question.jsx'
 import Reveal from './screens/Reveal.jsx'
 import Results from './screens/Results.jsx'
+import PartnerLeft from './screens/PartnerLeft.jsx'
 import NotConfigured from './screens/NotConfigured.jsx'
 
 export default function App() {
@@ -34,6 +36,12 @@ export default function App() {
 
   if (game.status === 'lobby') {
     return <Lobby uid={uid} game={g} />
+  }
+
+  // La partie était en cours (ou terminée) et le binôme n'est plus là :
+  // éviter de laisser l'autre joueur attendre indéfiniment.
+  if (playerUids(game).length < 2) {
+    return <PartnerLeft game={g} />
   }
 
   if (game.status === 'finished') {
