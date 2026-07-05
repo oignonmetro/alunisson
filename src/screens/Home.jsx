@@ -3,7 +3,6 @@ import { sanitizeCode, isValidCode, CODE_LENGTH } from '../lib/gameCode.js'
 
 export default function Home({ game }) {
   const { createGame, joinGame, error, setError } = game
-  const [mode, setMode] = useState(null) // 'create' | 'join'
   const [name, setName] = useState('')
   const [code, setCode] = useState('')
   const [busy, setBusy] = useState(false)
@@ -42,65 +41,41 @@ export default function Home({ game }) {
         <p className="tagline">Répondez chacun de votre côté. Marquez un point à chaque fois que vous pensez pareil.</p>
       </div>
 
-      {!mode && (
-        <div className="stack">
-          <button className="btn btn-primary" onClick={() => { setMode('create'); setError(null) }}>
-            Créer une partie
-          </button>
-          <button className="btn btn-ghost" onClick={() => { setMode('join'); setError(null) }}>
-            Rejoindre avec un code
-          </button>
-        </div>
-      )}
+      <div className="card">
+        <label className="field">
+          <span>Ton prénom</span>
+          <input
+            autoFocus
+            value={name}
+            maxLength={20}
+            onChange={(e) => setName(e.target.value)}
+            placeholder="Alex"
+          />
+        </label>
+      </div>
 
-      {mode === 'create' && (
-        <div className="card stack">
-          <label className="field">
-            <span>Ton prénom</span>
-            <input
-              autoFocus
-              value={name}
-              maxLength={20}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="Alex"
-            />
-          </label>
-          <button className="btn btn-primary" disabled={busy} onClick={handleCreate}>
-            {busy ? 'Création…' : 'Créer la partie'}
-          </button>
-          <button className="btn btn-link" onClick={() => setMode(null)}>← Retour</button>
-        </div>
-      )}
+      <div className="card">
+        <button className="btn btn-primary" disabled={busy} onClick={handleCreate}>
+          {busy ? 'Création…' : 'Créer une partie'}
+        </button>
+      </div>
 
-      {mode === 'join' && (
-        <div className="card stack">
-          <label className="field">
-            <span>Ton prénom</span>
-            <input
-              autoFocus
-              value={name}
-              maxLength={20}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="Sam"
-            />
-          </label>
-          <label className="field">
-            <span>Code de la partie</span>
-            <input
-              className="code-input"
-              value={code}
-              onChange={(e) => setCode(sanitizeCode(e.target.value))}
-              placeholder="ABCD"
-              inputMode="text"
-              autoCapitalize="characters"
-            />
-          </label>
-          <button className="btn btn-primary" disabled={busy} onClick={handleJoin}>
-            {busy ? 'Connexion…' : 'Rejoindre'}
-          </button>
-          <button className="btn btn-link" onClick={() => setMode(null)}>← Retour</button>
-        </div>
-      )}
+      <div className="card stack">
+        <label className="field">
+          <span>Rejoindre avec un code</span>
+          <input
+            className="code-input"
+            value={code}
+            onChange={(e) => setCode(sanitizeCode(e.target.value))}
+            placeholder="Ex. ABCD"
+            inputMode="text"
+            autoCapitalize="characters"
+          />
+        </label>
+        <button className="btn btn-ghost" disabled={busy} onClick={handleJoin}>
+          {busy ? 'Connexion…' : 'Rejoindre'}
+        </button>
+      </div>
 
       {error && <p className="error">{error.message}</p>}
     </div>
