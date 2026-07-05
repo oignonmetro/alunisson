@@ -9,6 +9,7 @@
 
 import { useCallback, useEffect, useState } from 'react'
 import {
+  deleteField,
   doc,
   getDoc,
   onSnapshot,
@@ -42,11 +43,36 @@ export function useGame(uid) {
     return unsub
   }, [code])
 
+  // Quitte la partie : retour immédiat à l'accueil côté local, et retrait du
+  // document Firestore en tâche de fond (pour ne pas laisser le binôme
+  // attendre indéfiniment une réponse ou un « suivant » qui ne viendra plus).
   const leaveGame = useCallback(() => {
+    const leavingCode = code
+    const leavingUid = uid
     setCode(null)
     setGame(null)
     setError(null)
-  }, [])
+    if (!leavingCode || !leavingUid) return
+    runTransaction(db, async (tx) => {
+      const ref = gameDoc(leavingCode)
+      const snap = await tx.get(ref)
+      if (!snap.exists()) return
+      const data = snap.data()
+      const remaining = Object.keys(data.players || {}).filter((u) => u !== leavingUid)
+      if (remaining.length === 0) {
+        tx.delete(ref)
+        return
+      }
+      const update = { [`players.${leavingUid}`]: deleteField() }
+      if (data.hostUid === leavingUid) {
+        update.hostUid = remaining[0]
+      }
+      tx.update(ref, update)
+    }).catch(() => {
+      // Best-effort : le joueur a déjà quitté localement, un échec de nettoyage
+      // côté serveur n'est pas bloquant pour lui.
+    })
+  }, [code, uid])
 
   // Crée une nouvelle partie et rejoint son propre salon en tant qu'hôte.
   const createGame = useCallback(

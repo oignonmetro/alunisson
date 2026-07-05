@@ -3,7 +3,7 @@ import { labelForValue, playerUids, playerName, otherUid } from '../lib/players.
 import { isRoundCounted, computeResults } from '../lib/gameLogic.js'
 
 export default function Reveal({ uid, game }) {
-  const { game: data, setOverride, nextQuestion, error, setError } = game
+  const { game: data, setOverride, nextQuestion, leaveGame, error, setError } = game
   const idx = data.currentIndex
   const total = data.questions.length
   const question = data.questions[idx]
@@ -29,6 +29,10 @@ export default function Reveal({ uid, game }) {
 
   return (
     <div className="screen">
+      <div className="topbar">
+        <button className="btn btn-link" onClick={leaveGame}>← Quitter</button>
+        <span />
+      </div>
       <div className="q-count">Question {idx + 1} / {total} · <b>{matchCount}</b> en accord</div>
 
       <div className="card question-card">

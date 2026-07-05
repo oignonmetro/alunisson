@@ -3,7 +3,7 @@ import { optionsFor } from '../lib/players.js'
 import { PACKS_BY_ID } from '../data/packs/index.js'
 
 export default function Question({ uid, game }) {
-  const { game: data, submitAnswer, error, setError } = game
+  const { game: data, submitAnswer, leaveGame, error, setError } = game
   const idx = data.currentIndex
   const total = data.questions.length
   const question = data.questions[idx]
@@ -34,6 +34,10 @@ export default function Question({ uid, game }) {
 
   return (
     <div className="screen">
+      <div className="topbar">
+        <button className="btn btn-link" onClick={leaveGame}>← Quitter</button>
+        <span />
+      </div>
       <div className="progress">
         <div className="progress-bar" style={{ width: `${((idx) / total) * 100}%` }} />
       </div>
