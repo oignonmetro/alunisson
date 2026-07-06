@@ -6,7 +6,6 @@ import {
   isRoundCounted,
   pointsForQuestion,
   computeResults,
-  compatibilityMessage,
 } from '../gameLogic.js'
 
 const packsById = {
@@ -110,12 +109,5 @@ describe('computeResults', () => {
   it('gère une partie vide sans planter', () => {
     const res = computeResults({})
     expect(res).toEqual({ matchCount: 0, total: 0, points: 0, maxPoints: 0, pct: 0, details: [] })
-  })
-})
-
-describe('compatibilityMessage', () => {
-  it('renvoie un palier cohérent', () => {
-    expect(compatibilityMessage(95).title).toBeTruthy()
-    expect(compatibilityMessage(0).emoji).toBeTruthy()
   })
 })

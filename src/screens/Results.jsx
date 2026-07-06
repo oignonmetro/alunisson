@@ -1,11 +1,10 @@
 import { useState } from 'react'
-import { computeResults, compatibilityMessage } from '../lib/gameLogic.js'
+import { computeResults } from '../lib/gameLogic.js'
 import { labelForValue, playerUids, playerName } from '../lib/players.js'
 
 export default function Results({ uid, game }) {
   const { game: data, replay, leaveGame, isHost, error, setError } = game
   const { matchCount, total, points, maxPoints, pct, details } = computeResults(data)
-  const msg = compatibilityMessage(pct)
   const uids = playerUids(data)
   const [busy, setBusy] = useState(false)
 
@@ -18,13 +17,9 @@ export default function Results({ uid, game }) {
   return (
     <div className="screen">
       <div className="result-hero">
-        <div className="result-emoji">{msg.emoji}</div>
         <div className="score-big">{points}<span className="score-total">/{maxPoints} pts</span></div>
         <p className="muted tiny">{matchCount}/{total} questions en accord</p>
         <div className="gauge"><div className="gauge-fill" style={{ width: `${pct}%` }} /></div>
-        <div className="pct">{pct}% de compatibilité</div>
-        <h2 className="result-title">{msg.title}</h2>
-        <p className="muted">{msg.text}</p>
       </div>
 
       <div className="recap">
