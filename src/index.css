@@ -95,37 +95,23 @@ input {
   border: 1px solid var(--card-border); border-radius: 12px; outline: none;
 }
 input:focus { border-color: var(--primary); }
-.code-input, .code-badge { letter-spacing: 8px; text-align: center; font-weight: 800; font-size: 26px; }
-
-.code-badge {
-  border: none; background: rgba(0,0,0,0.25);
-  color: var(--primary-2); padding: 12px 20px; border-radius: 14px;
-  border: 1px dashed rgba(255,255,255,0.2); cursor: pointer;
-}
+.code-input { letter-spacing: 8px; text-align: center; font-weight: 800; font-size: 26px; }
 
 /* ---------- Lobby ---------- */
-.players-row { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; }
-.player-chip {
-  display: inline-flex; align-items: center; gap: 8px;
-  background: var(--card); border: 1px solid var(--card-border);
-  padding: 8px 14px; border-radius: 999px; font-weight: 600; font-size: 14px;
+.card-title { font-weight: 700; font-size: 16px; margin: 0; }
+.code-big {
+  border: none; background: none; cursor: pointer; padding: 4px 0;
+  color: var(--primary-2); font-weight: 800; font-size: 30px; letter-spacing: 10px;
 }
-.player-chip.me { border-color: var(--primary); }
-.player-chip.waiting { color: var(--muted); }
-.dot { width: 9px; height: 9px; border-radius: 50%; background: var(--ok); }
-.dot.pulse { background: var(--accent); animation: pulse 1.2s infinite; }
-@keyframes pulse { 0%,100%{opacity:.4} 50%{opacity:1} }
-
-.pack-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-.pack-card {
-  text-align: center; background: var(--card); border: 1.5px solid var(--card-border);
-  border-radius: 16px; padding: 20px 14px; cursor: pointer; color: var(--text);
-  display: flex; align-items: center; justify-content: center; min-height: 64px;
-  transition: border .15s, transform .08s;
+.list { display: flex; flex-direction: column; gap: 10px; }
+.list-row {
+  text-align: left; background: rgba(255,255,255,0.06); border: 1px solid var(--card-border);
+  border-radius: 14px; padding: 14px 16px; font-weight: 600; font-size: 15px; color: var(--text);
 }
-.pack-card:active { transform: scale(0.98); }
-.pack-card.selected { border-color: var(--primary); background: rgba(255, 94, 138, 0.12); }
-.pack-name { font-weight: 700; font-size: 15px; }
+.list-row.selectable { cursor: pointer; transition: border .15s, transform .08s; }
+.list-row.selectable:active { transform: scale(0.99); }
+.list-row.selectable.selected { border-color: var(--primary); background: rgba(255, 94, 138, 0.14); }
+.list-row.waiting { color: var(--muted); font-weight: 500; }
 
 .segmented { display: flex; gap: 8px; }
 .seg {
