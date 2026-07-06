@@ -70,9 +70,7 @@ export default function Lobby({ uid, game }) {
                 className={'pack-card' + (packs.includes(p.id) ? ' selected' : '')}
                 onClick={() => togglePack(p.id)}
               >
-                <span className="pack-emoji">{p.emoji}</span>
                 <span className="pack-name">{p.name}</span>
-                <span className="pack-desc">{p.description}</span>
               </button>
             ))}
           </div>
