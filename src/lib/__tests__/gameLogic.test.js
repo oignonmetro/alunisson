@@ -3,8 +3,10 @@ import {
   buildQuestions,
   computeAutoMatch,
   allAnswered,
-  isRoundCounted,
+  isTeamCounted,
   pointsForQuestion,
+  gameTeams,
+  gameMode,
   computeResults,
 } from '../gameLogic.js'
 
@@ -45,29 +47,54 @@ describe('computeAutoMatch', () => {
 })
 
 describe('allAnswered', () => {
-  it('vrai seulement quand les deux ont soumis', () => {
-    const uids = ['A', 'B']
-    expect(allAnswered({ answers: { A: { submitted: true } } }, uids)).toBe(false)
-    expect(allAnswered({ answers: { A: { submitted: true }, B: { submitted: true } } }, uids)).toBe(true)
+  it('vrai seulement quand tous ont soumis', () => {
+    const uids = ['A', 'B', 'C', 'D']
+    expect(allAnswered({ answers: { A: { submitted: true }, B: { submitted: true } } }, uids)).toBe(false)
+    expect(allAnswered({ answers: Object.fromEntries(uids.map((u) => [u, { submitted: true }])) }, uids)).toBe(true)
   })
 })
 
-describe('isRoundCounted', () => {
-  const uids = ['A', 'B']
-  it('compte si autoMatch', () => {
-    expect(isRoundCounted({ autoMatch: true }, { type: 'mcq' }, uids)).toBe(true)
+describe('gameMode / gameTeams', () => {
+  it('déduit le mode couple à 2 joueurs', () => {
+    const game = { players: { A: { joinedAt: 1 }, B: { joinedAt: 2 } } }
+    expect(gameMode(game)).toBe('couple')
+    expect(gameTeams(game)).toEqual([{ id: 'duo', uids: ['A', 'B'] }])
+  })
+  it('déduit le mode équipes à 4 joueurs et regroupe par camp', () => {
+    const game = {
+      players: {
+        A: { joinedAt: 1, team: 'A' }, B: { joinedAt: 2, team: 'B' },
+        C: { joinedAt: 3, team: 'A' }, D: { joinedAt: 4, team: 'B' },
+      },
+    }
+    expect(gameMode(game)).toBe('teams')
+    expect(gameTeams(game)).toEqual([
+      { id: 'A', uids: ['A', 'C'] },
+      { id: 'B', uids: ['B', 'D'] },
+    ])
+  })
+  it('respecte config.mode s’il est présent', () => {
+    const game = { config: { mode: 'couple' }, players: { A: { joinedAt: 1 }, B: { joinedAt: 2 } } }
+    expect(gameMode(game)).toBe('couple')
+  })
+})
+
+describe('isTeamCounted', () => {
+  const team = { id: 'A', uids: ['A1', 'A2'] }
+  it('compte si l’équipe a matché automatiquement', () => {
+    expect(isTeamCounted({ teamMatch: { A: true } }, { type: 'mcq' }, team)).toBe(true)
   })
   it('ne compte pas un mcq raté même avec overrides', () => {
-    const round = { autoMatch: false, overrides: { A: true, B: true } }
-    expect(isRoundCounted(round, { type: 'mcq' }, uids)).toBe(false)
+    const round = { teamMatch: { A: false }, overrides: { A1: true, A2: true } }
+    expect(isTeamCounted(round, { type: 'mcq' }, team)).toBe(false)
   })
-  it('compte un texte raté si les deux valident le rattrapage', () => {
-    const round = { autoMatch: false, overrides: { A: true, B: true } }
-    expect(isRoundCounted(round, { type: 'text' }, uids)).toBe(true)
+  it('compte un texte raté si les deux membres valident le rattrapage', () => {
+    const round = { teamMatch: { A: false }, overrides: { A1: true, A2: true } }
+    expect(isTeamCounted(round, { type: 'text' }, team)).toBe(true)
   })
-  it('ne compte pas si un seul valide le rattrapage', () => {
-    const round = { autoMatch: false, overrides: { A: true } }
-    expect(isRoundCounted(round, { type: 'text' }, uids)).toBe(false)
+  it('ne compte pas si un seul membre valide le rattrapage', () => {
+    const round = { teamMatch: { A: false }, overrides: { A1: true } }
+    expect(isTeamCounted(round, { type: 'text' }, team)).toBe(false)
   })
 })
 
@@ -81,33 +108,67 @@ describe('pointsForQuestion', () => {
   })
 })
 
-describe('computeResults', () => {
-  it('agrège le score en points selon le barème par type', () => {
+describe('computeResults — couple', () => {
+  it('agrège le score de l’unique duo selon le barème par type', () => {
     const game = {
-      players: { A: {}, B: {} },
+      players: { A: { joinedAt: 1 }, B: { joinedAt: 2 } },
       questions: [
         { id: 'p1:q1', type: 'text' }, // matché : +3
         { id: 'p2:q1', type: 'mcq' }, // raté : +0
         { id: 'p1:q2', type: 'text' }, // matché via rattrapage : +3
       ],
       rounds: {
-        0: { autoMatch: true },
-        1: { autoMatch: false },
-        2: { autoMatch: false, overrides: { A: true, B: true } },
+        0: { teamMatch: { duo: true } },
+        1: { teamMatch: { duo: false } },
+        2: { teamMatch: { duo: false }, overrides: { A: true, B: true } },
       },
     }
     const res = computeResults(game)
+    expect(res.mode).toBe('couple')
     expect(res.total).toBe(3)
-    expect(res.matchCount).toBe(2)
-    expect(res.points).toBe(6) // 3 + 0 + 3
     expect(res.maxPoints).toBe(8) // 3 + 2 + 3
-    expect(res.pct).toBe(75) // 6/8
-    expect(res.details).toHaveLength(3)
-    expect(res.details[0].points).toBe(3)
-    expect(res.details[1].points).toBe(2)
+    expect(res.teams).toHaveLength(1)
+    expect(res.teams[0].points).toBe(6) // 3 + 0 + 3
+    expect(res.teams[0].matchCount).toBe(2)
+    expect(res.winnerTeamId).toBe(null)
   })
-  it('gère une partie vide sans planter', () => {
+})
+
+describe('computeResults — teams', () => {
+  const game = {
+    players: {
+      A: { joinedAt: 1, team: 'A' }, C: { joinedAt: 3, team: 'A' },
+      B: { joinedAt: 2, team: 'B' }, D: { joinedAt: 4, team: 'B' },
+    },
+    questions: [
+      { id: 'p2:q1', type: 'mcq' }, // A matché (+2), B non
+      { id: 'p1:q1', type: 'text' }, // B matché (+3), A non
+    ],
+    rounds: {
+      0: { teamMatch: { A: true, B: false } },
+      1: { teamMatch: { A: false, B: true } },
+    },
+  }
+  it('calcule les scores par équipe et désigne le vainqueur', () => {
+    const res = computeResults(game)
+    expect(res.mode).toBe('teams')
+    expect(res.teams).toHaveLength(2)
+    const a = res.teams.find((t) => t.id === 'A')
+    const b = res.teams.find((t) => t.id === 'B')
+    expect(a.points).toBe(2)
+    expect(b.points).toBe(3)
+    expect(res.winnerTeamId).toBe('B')
+    expect(res.details[0].perTeam.A.counted).toBe(true)
+    expect(res.details[0].perTeam.B.counted).toBe(false)
+  })
+})
+
+describe('computeResults — partie vide', () => {
+  it('ne plante pas', () => {
     const res = computeResults({})
-    expect(res).toEqual({ matchCount: 0, total: 0, points: 0, maxPoints: 0, pct: 0, details: [] })
+    expect(res.total).toBe(0)
+    expect(res.maxPoints).toBe(0)
+    expect(res.mode).toBe('couple')
+    expect(res.teams).toHaveLength(1)
   })
 })

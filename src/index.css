@@ -141,9 +141,10 @@ input:focus { border-color: var(--primary); }
 
 /* ---------- Reveal ---------- */
 .verdict { text-align: center; font-size: 22px; font-weight: 800; padding: 8px; }
+.verdict.small { font-size: 17px; padding: 2px; }
 .verdict.match { color: var(--ok); }
 .verdict.nomatch { color: var(--ko); }
-.verdict-points { font-size: 14px; font-weight: 700; color: var(--ok); margin-top: 2px; }
+.verdict-points { font-weight: 700; color: var(--ok); }
 .answers { display: flex; flex-direction: column; gap: 10px; }
 .answer-row {
   display: flex; justify-content: space-between; align-items: center; gap: 12px;
@@ -164,12 +165,46 @@ input:focus { border-color: var(--primary); }
 
 .recap { display: flex; flex-direction: column; gap: 10px; }
 .recap-row { border-radius: 14px; padding: 12px 14px; border: 1px solid var(--card-border); background: var(--card); }
-.recap-row.ok { border-left: 3px solid var(--ok); }
-.recap-row.ko { border-left: 3px solid var(--ko); }
-.recap-q { font-weight: 600; font-size: 14px; margin-bottom: 6px; }
-.recap-mark { margin-right: 6px; }
-.recap-points { float: right; font-weight: 700; color: var(--muted); font-size: 12px; }
+.recap-q { font-weight: 600; font-size: 14px; margin-bottom: 8px; }
+.recap-teams { display: flex; flex-direction: column; gap: 8px; }
+.recap-team { border-left: 3px solid var(--card-border); padding-left: 10px; }
+.recap-team.ok { border-left-color: var(--ok); }
+.recap-team.ko { border-left-color: var(--ko); }
+.recap-team-head { display: flex; align-items: center; gap: 6px; font-weight: 700; font-size: 13px; margin-bottom: 2px; }
+.recap-mark { }
+.recap-points { margin-left: auto; font-weight: 700; color: var(--muted); font-size: 12px; }
 .recap-answers { display: flex; flex-direction: column; gap: 2px; font-size: 13px; color: var(--muted); }
 .recap-a b { color: var(--text); font-weight: 600; }
+
+/* ---------- Teams (mode 4 joueurs) ---------- */
+.player-line { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.team-tag { font-size: 12px; font-weight: 700; }
+.team-buttons { display: flex; gap: 8px; }
+.team-btn {
+  flex: 1; padding: 12px; border-radius: 12px; font-weight: 700; font-size: 14px;
+  background: var(--card); border: 1.5px solid var(--card-border); color: var(--text); cursor: pointer;
+}
+.team-btn.active { background: rgba(255,255,255,0.06); }
+.team-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+.scoreboard { display: flex; gap: 12px; }
+.score-cell {
+  flex: 1; display: flex; flex-direction: column; align-items: center; gap: 2px;
+  background: var(--card); border: 1px solid var(--card-border); border-radius: 14px; padding: 10px;
+}
+.score-team { font-size: 13px; font-weight: 700; }
+.score-pts { font-size: 26px; font-weight: 800; }
+
+.team-result { border: 1px solid var(--card-border); border-radius: 16px; padding: 14px; display: flex; flex-direction: column; gap: 10px; }
+.team-head { font-weight: 800; font-size: 14px; text-transform: uppercase; letter-spacing: 0.5px; }
+
+.winner-banner { font-size: 22px; font-weight: 800; text-align: center; }
+.team-scores { display: flex; gap: 12px; justify-content: center; }
+.team-score-card {
+  flex: 1; max-width: 180px; display: flex; flex-direction: column; align-items: center; gap: 2px;
+  border: 2px solid var(--card-border); border-radius: 16px; padding: 16px 10px; background: var(--card);
+}
+.team-score-card.winner { background: rgba(255,255,255,0.06); }
+.team-score-name { font-size: 14px; font-weight: 800; }
 
 code { background: rgba(0,0,0,0.3); padding: 2px 6px; border-radius: 6px; font-size: 13px; }

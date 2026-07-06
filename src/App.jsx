@@ -38,9 +38,10 @@ export default function App() {
     return <Lobby uid={uid} game={g} />
   }
 
-  // La partie était en cours (ou terminée) et le binôme n'est plus là :
-  // éviter de laisser l'autre joueur attendre indéfiniment.
-  if (playerUids(game).length < 2) {
+  // La partie était en cours (ou terminée) et un joueur manque à l'appel :
+  // éviter de laisser les autres attendre indéfiniment.
+  const expected = game.config?.playerCount || 2
+  if (playerUids(game).length < expected) {
     return <PartnerLeft game={g} />
   }
 

@@ -19,7 +19,7 @@ import {
 } from 'firebase/firestore'
 import { db } from '../firebase.js'
 import { generateCode } from '../lib/gameCode.js'
-import { buildQuestions, computeAutoMatch, allAnswered, QUESTIONS_PER_GAME } from '../lib/gameLogic.js'
+import { buildQuestions, computeAutoMatch, allAnswered, gameTeams, QUESTIONS_PER_GAME } from '../lib/gameLogic.js'
 import { PACKS_BY_ID } from '../data/packs/index.js'
 
 const gameDoc = (code) => doc(db, 'games', code)
@@ -93,7 +93,7 @@ export function useGame(uid) {
         status: 'lobby',
         hostUid: uid,
         players: {
-          [uid]: { name: name?.trim() || 'Joueur 1', isHost: true, connected: true, joinedAt: Date.now() },
+          [uid]: { name: name?.trim() || 'Joueur 1', isHost: true, connected: true, team: null, joinedAt: Date.now() },
         },
         config: { packs: [], questionCount: QUESTIONS_PER_GAME },
         questions: [],
@@ -120,10 +120,10 @@ export function useGame(uid) {
         const data = snap.data()
         const players = data.players || {}
         if (!players[uid]) {
-          if (Object.keys(players).length >= 2) throw new Error('Cette partie est déjà complète.')
+          if (Object.keys(players).length >= 4) throw new Error('Cette partie est déjà complète (4 joueurs max).')
           if (data.status !== 'lobby') throw new Error('La partie a déjà commencé.')
           tx.update(ref, {
-            [`players.${uid}`]: { name: name?.trim() || 'Joueur 2', isHost: false, connected: true, joinedAt: Date.now() },
+            [`players.${uid}`]: { name: name?.trim() || 'Joueur', isHost: false, connected: true, team: null, joinedAt: Date.now() },
           })
         }
       })
@@ -132,7 +132,28 @@ export function useGame(uid) {
     [uid],
   )
 
+  // Choisit son équipe (mode 4 joueurs) — 2 places par équipe, dans le salon.
+  const setTeam = useCallback(
+    async (team) => {
+      await runTransaction(db, async (tx) => {
+        const ref = gameDoc(code)
+        const snap = await tx.get(ref)
+        if (!snap.exists()) return
+        const data = snap.data()
+        if (data.status !== 'lobby') return
+        const players = data.players || {}
+        if (team) {
+          const inTeam = Object.keys(players).filter((u) => u !== uid && players[u].team === team)
+          if (inTeam.length >= 2) throw new Error('Cette équipe est déjà complète.')
+        }
+        tx.update(ref, { [`players.${uid}.team`]: team })
+      })
+    },
+    [code, uid],
+  )
+
   // L'hôte lance la partie avec les packs choisis (nombre de questions fixe).
+  // Le mode est déduit du nombre de joueurs : 2 = couple, 4 = équipes.
   const startGame = useCallback(
     async (packs) => {
       await runTransaction(db, async (tx) => {
@@ -141,24 +162,32 @@ export function useGame(uid) {
         if (!snap.exists()) throw new Error('Partie introuvable.')
         const data = snap.data()
         if (data.hostUid !== uid) throw new Error('Seul l’hôte peut lancer la partie.')
-        if (Object.keys(data.players || {}).length < 2) throw new Error('Il faut être deux pour jouer.')
+        const players = data.players || {}
+        const n = Object.keys(players).length
+        if (n !== 2 && n !== 4) throw new Error('Il faut être 2 (couple) ou 4 (équipes) pour jouer.')
+        const mode = n === 4 ? 'teams' : 'couple'
+        if (mode === 'teams') {
+          const a = Object.keys(players).filter((u) => players[u].team === 'A').length
+          const b = Object.keys(players).filter((u) => players[u].team === 'B').length
+          if (a !== 2 || b !== 2) throw new Error('Répartissez-vous en 2 équipes de 2.')
+        }
         const questions = buildQuestions(packs, QUESTIONS_PER_GAME, PACKS_BY_ID)
         if (questions.length === 0) throw new Error('Choisissez au moins un pack de questions.')
         tx.update(ref, {
           status: 'playing',
-          config: { packs, questionCount: QUESTIONS_PER_GAME },
+          config: { packs, questionCount: QUESTIONS_PER_GAME, mode, playerCount: n },
           questions,
           currentIndex: 0,
           rounds: {},
-          matchCount: 0,
         })
       })
     },
     [code, uid],
   )
 
-  // Soumet la réponse du joueur pour la question courante. Si les deux ont
-  // répondu, révèle la manche et calcule l'auto-match dans la même transaction.
+  // Soumet la réponse du joueur pour la question courante. Quand TOUS les
+  // joueurs ont répondu, révèle la manche et calcule le match de chaque
+  // équipe dans la même transaction.
   const submitAnswer = useCallback(
     async (value) => {
       await runTransaction(db, async (tx) => {
@@ -172,14 +201,18 @@ export function useGame(uid) {
         const round = {
           answers: {},
           revealed: false,
-          autoMatch: null,
+          teamMatch: {},
           overrides: {},
           ...(rounds[idx] || {}),
         }
         round.answers = { ...round.answers, [uid]: { value, submitted: true } }
         if (!round.revealed && allAnswered(round, playerUids)) {
           round.revealed = true
-          round.autoMatch = computeAutoMatch(data.questions[idx], round.answers, playerUids)
+          const question = data.questions[idx]
+          round.teamMatch = {}
+          for (const team of gameTeams(data)) {
+            round.teamMatch[team.id] = computeAutoMatch(question, round.answers, team.uids)
+          }
         }
         tx.update(ref, { [`rounds.${idx}`]: round })
       })
@@ -217,13 +250,13 @@ export function useGame(uid) {
     })
   }, [code])
 
-  // Rejouer : retour au salon en conservant les deux joueurs.
+  // Rejouer : retour au salon en conservant les joueurs (et leurs équipes).
   const replay = useCallback(async () => {
     await runTransaction(db, async (tx) => {
       const ref = gameDoc(code)
       const snap = await tx.get(ref)
       if (!snap.exists()) return
-      tx.update(ref, { status: 'lobby', questions: [], currentIndex: 0, rounds: {}, matchCount: 0 })
+      tx.update(ref, { status: 'lobby', questions: [], currentIndex: 0, rounds: {} })
     })
   }, [code])
 
@@ -235,6 +268,7 @@ export function useGame(uid) {
     isHost: Boolean(game && uid && game.hostUid === uid),
     createGame,
     joinGame,
+    setTeam,
     startGame,
     submitAnswer,
     setOverride,
