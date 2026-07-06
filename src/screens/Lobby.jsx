@@ -61,7 +61,6 @@ export default function Lobby({ uid, game }) {
               )}
             </div>
           ))}
-          {!bothHere && <div className="list-row waiting">En attente du 2e joueur…</div>}
         </div>
       </div>
 
