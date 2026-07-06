@@ -86,30 +86,49 @@ export function isRoundCounted(round, question, playerUids) {
 }
 
 /**
- * Calcule le résultat complet d'une partie (score, %, détail par question).
+ * Nombre de points rapportés par une bonne réponse à cette question.
+ * Les questions texte (plus difficiles à deviner) valent plus que les
+ * questions à choix (mcq / who).
+ * @param {{type: string}} question
+ * @returns {number}
+ */
+export function pointsForQuestion(question) {
+  return question?.type === 'text' ? 3 : 2
+}
+
+/**
+ * Calcule le résultat complet d'une partie (score en points, %, détail par question).
  * @param {any} game document de partie
- * @returns {{matchCount: number, total: number, pct: number, details: any[]}}
+ * @returns {{matchCount: number, total: number, points: number, maxPoints: number, pct: number, details: any[]}}
  */
 export function computeResults(game) {
   const playerUids = Object.keys(game?.players || {})
   const questions = game?.questions || []
   const rounds = game?.rounds || {}
   let matchCount = 0
+  let points = 0
+  let maxPoints = 0
   const details = questions.map((q, i) => {
     const round = rounds[String(i)] || {}
     const counted = isRoundCounted(round, q, playerUids)
-    if (counted) matchCount++
+    const questionPoints = pointsForQuestion(q)
+    maxPoints += questionPoints
+    if (counted) {
+      matchCount++
+      points += questionPoints
+    }
     return {
       index: i,
       question: q,
       answers: round.answers || {},
       autoMatch: round.autoMatch ?? null,
       counted,
+      points: questionPoints,
     }
   })
   const total = questions.length
-  const pct = total ? Math.round((matchCount / total) * 100) : 0
-  return { matchCount, total, pct, details }
+  const pct = maxPoints ? Math.round((points / maxPoints) * 100) : 0
+  return { matchCount, total, points, maxPoints, pct, details }
 }
 
 /**

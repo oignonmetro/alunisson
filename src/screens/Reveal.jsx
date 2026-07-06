@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { labelForValue, playerUids, playerName, otherUid } from '../lib/players.js'
-import { isRoundCounted, computeResults } from '../lib/gameLogic.js'
+import { isRoundCounted, computeResults, pointsForQuestion } from '../lib/gameLogic.js'
 
 export default function Reveal({ uid, game }) {
   const { game: data, setOverride, nextQuestion, leaveGame, error, setError } = game
@@ -18,7 +18,8 @@ export default function Reveal({ uid, game }) {
   const partner = otherUid(data, uid)
   const partnerOverride = Boolean(partner && round.overrides?.[partner])
 
-  const { matchCount } = computeResults(data)
+  const { points } = computeResults(data)
+  const questionPoints = pointsForQuestion(question)
   const [busy, setBusy] = useState(false)
 
   async function act(fn) {
@@ -33,7 +34,7 @@ export default function Reveal({ uid, game }) {
         <button className="btn btn-link" onClick={leaveGame}>← Quitter</button>
         <span />
       </div>
-      <div className="q-count">Question {idx + 1} / {total} · <b>{matchCount}</b> en accord</div>
+      <div className="q-count">Question {idx + 1} / {total} · <b>{points}</b> pt{points > 1 ? 's' : ''}</div>
 
       <div className="card question-card">
         <h2 className="q-text small">{question.text}</h2>
@@ -41,7 +42,9 @@ export default function Reveal({ uid, game }) {
 
       <div className={'verdict ' + (counted ? 'match' : 'nomatch')}>
         {counted ? '✅ En accord !' : '❌ Réponses différentes'}
-        {counted && <div className="verdict-points">+1 point</div>}
+        {counted && (
+          <div className="verdict-points">+{questionPoints} point{questionPoints > 1 ? 's' : ''}</div>
+        )}
       </div>
 
       <div className="answers">
