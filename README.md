@@ -108,13 +108,21 @@ npx firebase deploy --only hosting --project VOTRE_PROJECT_ID
 ## Comment on joue
 
 1. Un joueur **crée une partie** et partage le **code** à 4 lettres.
-2. L'autre **rejoint** avec ce code.
+2. Les autres **rejoignent** avec ce code (2 joueurs = mode couple, 4 joueurs = mode équipes).
 3. L'hôte choisit les **packs** de questions (chaque partie compte **7 questions**).
 4. À chaque question, chacun répond **sans regarder l'écran de l'autre**.
 5. Les réponses se **révèlent** : ✅ en accord (point) ou ❌ différentes.
    Pour une réponse **texte** proche mais non identique, validez le **rattrapage**
-   tous les deux pour marquer le point.
-6. À la fin : **score, % de compatibilité et récapitulatif**. Rejouez à volonté !
+   dans le duo pour marquer le point. Barème : 2 pts (choix), 3 pts (texte).
+6. À la fin : **score et récapitulatif**. Rejouez à volonté !
+
+### Mode équipes (4 joueurs)
+
+À **4 joueurs**, le mode équipes s'active automatiquement : chacun choisit son
+camp (**Équipe A** ou **Équipe B**, 2 par équipe) dans le salon. Les 4 répondent
+aux mêmes questions ; **chaque duo marque quand ses deux membres coïncident**, et
+les équipes s'affrontent. À la révélation, on voit les réponses de tout le monde
+et le score de chaque équipe ; l'équipe la plus « à l'unisson » l'emporte.
 
 ---
 

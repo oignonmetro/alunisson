@@ -1,11 +1,11 @@
 import { useState } from 'react'
 import { computeResults } from '../lib/gameLogic.js'
-import { labelForValue, playerUids, playerName } from '../lib/players.js'
+import { labelForValue, playerName, teamsOf, TEAM_META } from '../lib/players.js'
 
 export default function Results({ uid, game }) {
   const { game: data, replay, leaveGame, isHost, error, setError } = game
-  const { matchCount, total, points, maxPoints, pct, details } = computeResults(data)
-  const uids = playerUids(data)
+  const res = computeResults(data)
+  const teams = teamsOf(data)
   const [busy, setBusy] = useState(false)
 
   async function handleReplay() {
@@ -14,29 +14,64 @@ export default function Results({ uid, game }) {
     try { await replay() } catch (e) { setError(e) } finally { setBusy(false) }
   }
 
+  const isTeams = res.mode === 'teams'
+
   return (
     <div className="screen">
-      <div className="result-hero">
-        <div className="score-big">{points}<span className="score-total">/{maxPoints} pts</span></div>
-        <p className="muted tiny">{matchCount}/{total} questions en accord</p>
-        <div className="gauge"><div className="gauge-fill" style={{ width: `${pct}%` }} /></div>
-      </div>
+      {isTeams ? (
+        <div className="result-hero stack">
+          <div className="winner-banner">
+            {res.winnerTeamId
+              ? <>🏆 {TEAM_META[res.winnerTeamId].name} l’emporte !</>
+              : <>🤝 Égalité parfaite !</>}
+          </div>
+          <div className="team-scores">
+            {res.teams.map((t) => (
+              <div
+                key={t.id}
+                className={'team-score-card' + (res.winnerTeamId === t.id ? ' winner' : '')}
+                style={{ borderColor: TEAM_META[t.id].color }}
+              >
+                <span className="team-score-name" style={{ color: TEAM_META[t.id].color }}>{TEAM_META[t.id].name}</span>
+                <span className="score-big">{t.points}</span>
+                <span className="muted tiny">{t.matchCount}/{res.total} en accord</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      ) : (
+        <div className="result-hero">
+          <div className="score-big">{res.teams[0].points}<span className="score-total">/{res.maxPoints} pts</span></div>
+          <p className="muted tiny">{res.teams[0].matchCount}/{res.total} questions en accord</p>
+          <div className="gauge"><div className="gauge-fill" style={{ width: `${res.maxPoints ? (res.teams[0].points / res.maxPoints) * 100 : 0}%` }} /></div>
+        </div>
+      )}
 
       <div className="recap">
         <h3 className="section-title">Récapitulatif</h3>
-        {details.map((d) => (
-          <div key={d.index} className={'recap-row ' + (d.counted ? 'ok' : 'ko')}>
-            <div className="recap-q">
-              <span className="recap-mark">{d.counted ? '✅' : '❌'}</span>
-              {d.question.text}
-              <span className="recap-points">{d.counted ? `+${d.points}` : '+0'}</span>
-            </div>
-            <div className="recap-answers">
-              {uids.map((u) => (
-                <span key={u} className="recap-a">
-                  <b>{playerName(data, u)}:</b> {labelForValue(d.question, data, d.answers?.[u]?.value)}
-                </span>
-              ))}
+        {res.details.map((d) => (
+          <div key={d.index} className="recap-row">
+            <div className="recap-q">{d.question.text}</div>
+            <div className="recap-teams">
+              {teams.map((team) => {
+                const pt = d.perTeam[team.id] || {}
+                return (
+                  <div key={team.id} className={'recap-team ' + (pt.counted ? 'ok' : 'ko')}>
+                    <div className="recap-team-head">
+                      <span className="recap-mark">{pt.counted ? '✅' : '❌'}</span>
+                      {isTeams && <span style={{ color: TEAM_META[team.id].color }}>{team.name}</span>}
+                      <span className="recap-points">{pt.counted ? `+${pt.points}` : '+0'}</span>
+                    </div>
+                    <div className="recap-answers">
+                      {team.uids.map((u) => (
+                        <span key={u} className="recap-a">
+                          <b>{playerName(data, u)}:</b> {labelForValue(d.question, data, d.answers?.[u]?.value)}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )
+              })}
             </div>
           </div>
         ))}

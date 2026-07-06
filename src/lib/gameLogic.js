@@ -47,15 +47,56 @@ export function buildQuestions(selectedPackIds, count, packsById, rng = Math.ran
 }
 
 /**
- * Calcule la correspondance automatique d'une manche (avant rattrapage).
+ * Ordonne les uid des joueurs par ordre d'arrivée.
+ * @param {any} game
+ * @returns {string[]}
+ */
+export function orderedUids(game) {
+  const players = game?.players || {}
+  return Object.keys(players).sort(
+    (a, b) => (players[a].joinedAt || 0) - (players[b].joinedAt || 0),
+  )
+}
+
+/**
+ * Mode de la partie déduit de sa configuration ou du nombre de joueurs.
+ * @param {any} game
+ * @returns {'couple'|'teams'}
+ */
+export function gameMode(game) {
+  if (game?.config?.mode) return game.config.mode
+  return orderedUids(game).length > 2 ? 'teams' : 'couple'
+}
+
+/**
+ * Équipes de la partie (logique pure, sans métadonnées d'affichage).
+ * - mode couple : une seule équipe implicite `duo` = les deux joueurs.
+ * - mode équipes : deux équipes `A` et `B`, chacune = joueurs ayant choisi ce camp.
+ * @param {any} game
+ * @returns {{id: string, uids: string[]}[]}
+ */
+export function gameTeams(game) {
+  const players = game?.players || {}
+  const uids = orderedUids(game)
+  if (gameMode(game) === 'teams') {
+    return ['A', 'B'].map((id) => ({
+      id,
+      uids: uids.filter((u) => players[u].team === id),
+    }))
+  }
+  return [{ id: 'duo', uids }]
+}
+
+/**
+ * Correspondance automatique d'une paire (les 2 premiers uid donnés).
  * @param {{type: string}} question
  * @param {Record<string, {value: any}>} answers  indexé par uid
- * @param {string[]} playerUids
+ * @param {string[]} uids  les deux membres d'une équipe
  * @returns {boolean}
  */
-export function computeAutoMatch(question, answers, playerUids) {
-  if (!question || !answers || !playerUids || playerUids.length < 2) return false
-  const [a, b] = playerUids
+export function computeAutoMatch(question, answers, uids) {
+  if (!question || !answers || !uids || uids.length < 2) return false
+  const [a, b] = uids
   return isMatch(question, answers[a]?.value, answers[b]?.value)
 }
 
@@ -71,19 +112,19 @@ export function allAnswered(round, playerUids) {
 }
 
 /**
- * Détermine si une manche rapporte un point au duo :
- *  - correspondance automatique, OU
- *  - rattrapage (questions texte uniquement) validé par LES DEUX joueurs.
- * @param {{autoMatch?: boolean, overrides?: Record<string, boolean>}} round
+ * Détermine si une manche rapporte un point à une équipe :
+ *  - correspondance automatique de l'équipe, OU
+ *  - rattrapage (questions texte) validé par LES DEUX membres de l'équipe.
+ * @param {{teamMatch?: Record<string, boolean>, overrides?: Record<string, boolean>}} round
  * @param {{type: string}} question
- * @param {string[]} playerUids
+ * @param {{id: string, uids: string[]}} team
  * @returns {boolean}
  */
-export function isRoundCounted(round, question, playerUids) {
-  if (!round) return false
-  if (round.autoMatch === true) return true
-  if (question?.type === 'text' && round.overrides && playerUids.length >= 2) {
-    return playerUids.every((uid) => round.overrides[uid] === true)
+export function isTeamCounted(round, question, team) {
+  if (!round || !team) return false
+  if (round.teamMatch?.[team.id] === true) return true
+  if (question?.type === 'text' && round.overrides && team.uids.length >= 2) {
+    return team.uids.every((uid) => round.overrides[uid] === true)
   }
   return false
 }
@@ -100,36 +141,39 @@ export function pointsForQuestion(question) {
 }
 
 /**
- * Calcule le résultat complet d'une partie (score en points, %, détail par question).
+ * Calcule le résultat complet d'une partie, par équipe.
  * @param {any} game document de partie
- * @returns {{matchCount: number, total: number, points: number, maxPoints: number, pct: number, details: any[]}}
+ * @returns {{mode: string, total: number, maxPoints: number, teams: any[], winnerTeamId: string|null, details: any[]}}
  */
 export function computeResults(game) {
-  const playerUids = Object.keys(game?.players || {})
+  const teams = gameTeams(game)
   const questions = game?.questions || []
   const rounds = game?.rounds || {}
-  let matchCount = 0
-  let points = 0
+  const agg = teams.map((t) => ({ ...t, points: 0, matchCount: 0 }))
   let maxPoints = 0
+
   const details = questions.map((q, i) => {
     const round = rounds[String(i)] || {}
-    const counted = isRoundCounted(round, q, playerUids)
-    const questionPoints = pointsForQuestion(q)
-    maxPoints += questionPoints
-    if (counted) {
-      matchCount++
-      points += questionPoints
-    }
-    return {
-      index: i,
-      question: q,
-      answers: round.answers || {},
-      autoMatch: round.autoMatch ?? null,
-      counted,
-      points: questionPoints,
-    }
+    const qp = pointsForQuestion(q)
+    maxPoints += qp
+    const perTeam = {}
+    teams.forEach((team, ti) => {
+      const counted = isTeamCounted(round, q, team)
+      perTeam[team.id] = { counted, points: counted ? qp : 0 }
+      if (counted) {
+        agg[ti].points += qp
+        agg[ti].matchCount += 1
+      }
+    })
+    return { index: i, question: q, answers: round.answers || {}, perTeam }
   })
+
   const total = questions.length
-  const pct = maxPoints ? Math.round((points / maxPoints) * 100) : 0
-  return { matchCount, total, points, maxPoints, pct, details }
+  const mode = gameMode(game)
+  let winnerTeamId = null
+  if (mode === 'teams' && agg.length === 2) {
+    if (agg[0].points > agg[1].points) winnerTeamId = agg[0].id
+    else if (agg[1].points > agg[0].points) winnerTeamId = agg[1].id
+  }
+  return { mode, total, maxPoints, teams: agg, winnerTeamId, details }
 }

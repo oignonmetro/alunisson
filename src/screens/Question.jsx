@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { optionsFor } from '../lib/players.js'
+import { optionsFor, teamOfPlayer } from '../lib/players.js'
 import { PACKS_BY_ID } from '../data/packs/index.js'
 
 export default function Question({ uid, game }) {
@@ -15,7 +15,8 @@ export default function Question({ uid, game }) {
   const [text, setText] = useState('')
   const [busy, setBusy] = useState(false)
 
-  const options = optionsFor(question, data)
+  const myTeam = teamOfPlayer(data, uid)
+  const options = optionsFor(question, data, myTeam?.uids)
   const isText = question.type === 'text'
   const canSubmit = isText ? text.trim().length > 0 : choice !== ''
 
@@ -52,7 +53,7 @@ export default function Question({ uid, game }) {
         <div className="waiting stack center">
           <div className="spinner" />
           <p>Réponse envoyée ✅</p>
-          <p className="muted">En attente de la réponse de ton binôme…</p>
+          <p className="muted">En attente des autres joueurs…</p>
         </div>
       ) : (
         <div className="stack">
