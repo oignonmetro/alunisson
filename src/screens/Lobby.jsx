@@ -46,36 +46,41 @@ export default function Lobby({ uid, game }) {
       </div>
 
       <div className="card center stack">
-        <span className="muted">Code de la partie</span>
-        <button className="code-badge" onClick={copyCode} title="Copier">{code}</button>
-        <span className="muted tiny">Partage ce code à ton binôme (touche pour copier)</span>
+        <span className="muted">Code de la salle</span>
+        <button className="code-big" onClick={copyCode} title="Copier">{code}</button>
       </div>
 
-      <div className="players-row">
-        {uids.map((u) => (
-          <div key={u} className={'player-chip' + (u === uid ? ' me' : '')}>
-            <span className="dot" /> {playerName(data, u)}{u === uid ? ' (toi)' : ''}
-          </div>
-        ))}
-        {!bothHere && <div className="player-chip waiting"><span className="dot pulse" /> En attente du 2e joueur…</div>}
+      <div className="card stack">
+        <h3 className="card-title">Joueurs ({uids.length})</h3>
+        <div className="list">
+          {uids.map((u) => (
+            <div key={u} className="list-row">
+              {playerName(data, u)}
+              {(data.hostUid === u || u === uid) && (
+                <span className="muted"> · {[data.hostUid === u && 'hôte', u === uid && 'toi'].filter(Boolean).join(', ')}</span>
+              )}
+            </div>
+          ))}
+          {!bothHere && <div className="list-row waiting">En attente du 2e joueur…</div>}
+        </div>
       </div>
 
       {isHost ? (
-        <div className="stack">
-          <h3 className="section-title">Choisis vos packs de questions</h3>
-          <div className="pack-grid">
+        <div className="card stack">
+          <h3 className="card-title">Choisir les packs de questions</h3>
+          <div className="list">
             {PACKS.map((p) => (
               <button
                 key={p.id}
-                className={'pack-card' + (packs.includes(p.id) ? ' selected' : '')}
+                className={'list-row selectable' + (packs.includes(p.id) ? ' selected' : '')}
                 onClick={() => togglePack(p.id)}
               >
-                <span className="pack-name">{p.name}</span>
+                {p.name} <span className="muted">· {p.questions.length} questions</span>
               </button>
             ))}
           </div>
 
-          <h3 className="section-title">Nombre de questions</h3>
+          <h3 className="card-title">Nombre de questions</h3>
           <div className="segmented">
             {QUESTION_COUNTS.map((n) => (
               <button
@@ -97,7 +102,7 @@ export default function Lobby({ uid, game }) {
             disabled={busy || !bothHere || packs.length === 0}
             onClick={handleStart}
           >
-            {busy ? 'Lancement…' : bothHere ? 'Commencer 🎉' : 'En attente du 2e joueur…'}
+            {busy ? 'Lancement…' : bothHere ? 'Démarrer la partie' : 'En attente du 2e joueur…'}
           </button>
         </div>
       ) : (
