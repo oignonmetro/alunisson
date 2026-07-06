@@ -4,7 +4,7 @@ import { labelForValue, playerUids, playerName } from '../lib/players.js'
 
 export default function Results({ uid, game }) {
   const { game: data, replay, leaveGame, isHost, error, setError } = game
-  const { matchCount, total, pct, details } = computeResults(data)
+  const { matchCount, total, points, maxPoints, pct, details } = computeResults(data)
   const msg = compatibilityMessage(pct)
   const uids = playerUids(data)
   const [busy, setBusy] = useState(false)
@@ -19,7 +19,8 @@ export default function Results({ uid, game }) {
     <div className="screen">
       <div className="result-hero">
         <div className="result-emoji">{msg.emoji}</div>
-        <div className="score-big">{matchCount}<span className="score-total">/{total}</span></div>
+        <div className="score-big">{points}<span className="score-total">/{maxPoints} pts</span></div>
+        <p className="muted tiny">{matchCount}/{total} questions en accord</p>
         <div className="gauge"><div className="gauge-fill" style={{ width: `${pct}%` }} /></div>
         <div className="pct">{pct}% de compatibilité</div>
         <h2 className="result-title">{msg.title}</h2>
@@ -33,6 +34,7 @@ export default function Results({ uid, game }) {
             <div className="recap-q">
               <span className="recap-mark">{d.counted ? '✅' : '❌'}</span>
               {d.question.text}
+              <span className="recap-points">{d.counted ? `+${d.points}` : '+0'}</span>
             </div>
             <div className="recap-answers">
               {uids.map((u) => (

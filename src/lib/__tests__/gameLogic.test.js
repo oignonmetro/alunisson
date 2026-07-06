@@ -4,6 +4,7 @@ import {
   computeAutoMatch,
   allAnswered,
   isRoundCounted,
+  pointsForQuestion,
   computeResults,
   compatibilityMessage,
 } from '../gameLogic.js'
@@ -71,14 +72,24 @@ describe('isRoundCounted', () => {
   })
 })
 
+describe('pointsForQuestion', () => {
+  it('les questions texte valent 3 points', () => {
+    expect(pointsForQuestion({ type: 'text' })).toBe(3)
+  })
+  it('mcq et who valent 2 points', () => {
+    expect(pointsForQuestion({ type: 'mcq' })).toBe(2)
+    expect(pointsForQuestion({ type: 'who' })).toBe(2)
+  })
+})
+
 describe('computeResults', () => {
-  it('agrège le score et le pourcentage', () => {
+  it('agrège le score en points selon le barème par type', () => {
     const game = {
       players: { A: {}, B: {} },
       questions: [
-        { id: 'p1:q1', type: 'text' },
-        { id: 'p2:q1', type: 'mcq' },
-        { id: 'p1:q2', type: 'text' },
+        { id: 'p1:q1', type: 'text' }, // matché : +3
+        { id: 'p2:q1', type: 'mcq' }, // raté : +0
+        { id: 'p1:q2', type: 'text' }, // matché via rattrapage : +3
       ],
       rounds: {
         0: { autoMatch: true },
@@ -89,12 +100,16 @@ describe('computeResults', () => {
     const res = computeResults(game)
     expect(res.total).toBe(3)
     expect(res.matchCount).toBe(2)
-    expect(res.pct).toBe(67)
+    expect(res.points).toBe(6) // 3 + 0 + 3
+    expect(res.maxPoints).toBe(8) // 3 + 2 + 3
+    expect(res.pct).toBe(75) // 6/8
     expect(res.details).toHaveLength(3)
+    expect(res.details[0].points).toBe(3)
+    expect(res.details[1].points).toBe(2)
   })
   it('gère une partie vide sans planter', () => {
     const res = computeResults({})
-    expect(res).toEqual({ matchCount: 0, total: 0, pct: 0, details: [] })
+    expect(res).toEqual({ matchCount: 0, total: 0, points: 0, maxPoints: 0, pct: 0, details: [] })
   })
 })
 
