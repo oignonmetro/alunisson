@@ -19,7 +19,7 @@ import {
 } from 'firebase/firestore'
 import { db } from '../firebase.js'
 import { generateCode } from '../lib/gameCode.js'
-import { buildQuestions, computeAutoMatch, allAnswered } from '../lib/gameLogic.js'
+import { buildQuestions, computeAutoMatch, allAnswered, QUESTIONS_PER_GAME } from '../lib/gameLogic.js'
 import { PACKS_BY_ID } from '../data/packs/index.js'
 
 const gameDoc = (code) => doc(db, 'games', code)
@@ -95,7 +95,7 @@ export function useGame(uid) {
         players: {
           [uid]: { name: name?.trim() || 'Joueur 1', isHost: true, connected: true, joinedAt: Date.now() },
         },
-        config: { packs: [], questionCount: 10 },
+        config: { packs: [], questionCount: QUESTIONS_PER_GAME },
         questions: [],
         currentIndex: 0,
         rounds: {},
@@ -132,9 +132,9 @@ export function useGame(uid) {
     [uid],
   )
 
-  // L'hôte lance la partie avec les packs et le nombre de questions choisis.
+  // L'hôte lance la partie avec les packs choisis (nombre de questions fixe).
   const startGame = useCallback(
-    async (packs, questionCount) => {
+    async (packs) => {
       await runTransaction(db, async (tx) => {
         const ref = gameDoc(code)
         const snap = await tx.get(ref)
@@ -142,11 +142,11 @@ export function useGame(uid) {
         const data = snap.data()
         if (data.hostUid !== uid) throw new Error('Seul l’hôte peut lancer la partie.')
         if (Object.keys(data.players || {}).length < 2) throw new Error('Il faut être deux pour jouer.')
-        const questions = buildQuestions(packs, questionCount, PACKS_BY_ID)
+        const questions = buildQuestions(packs, QUESTIONS_PER_GAME, PACKS_BY_ID)
         if (questions.length === 0) throw new Error('Choisissez au moins un pack de questions.')
         tx.update(ref, {
           status: 'playing',
-          config: { packs, questionCount },
+          config: { packs, questionCount: QUESTIONS_PER_GAME },
           questions,
           currentIndex: 0,
           rounds: {},

@@ -109,7 +109,7 @@ npx firebase deploy --only hosting --project VOTRE_PROJECT_ID
 
 1. Un joueur **crée une partie** et partage le **code** à 4 lettres.
 2. L'autre **rejoint** avec ce code.
-3. L'hôte choisit les **packs** et le **nombre de questions** (5 / 10 / 15).
+3. L'hôte choisit les **packs** de questions (chaque partie compte **7 questions**).
 4. À chaque question, chacun répond **sans regarder l'écran de l'autre**.
 5. Les réponses se **révèlent** : ✅ en accord (point) ou ❌ différentes.
    Pour une réponse **texte** proche mais non identique, validez le **rattrapage**

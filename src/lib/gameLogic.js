@@ -4,6 +4,9 @@
 
 import { isMatch } from './matching.js'
 
+/** Nombre de questions posées à chaque partie (fixe). */
+export const QUESTIONS_PER_GAME = 7
+
 /**
  * Mélange (Fisher-Yates) une copie du tableau. `rng` injectable pour les tests.
  * @template T
