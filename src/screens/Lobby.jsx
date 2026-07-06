@@ -1,15 +1,12 @@
 import { useState } from 'react'
 import { PACKS } from '../data/packs/index.js'
-import { buildQuestions } from '../lib/gameLogic.js'
+import { buildQuestions, QUESTIONS_PER_GAME } from '../lib/gameLogic.js'
 import { PACKS_BY_ID } from '../data/packs/index.js'
 import { playerUids, playerName } from '../lib/players.js'
-
-const QUESTION_COUNTS = [5, 10, 15]
 
 export default function Lobby({ uid, game }) {
   const { code, game: data, isHost, startGame, leaveGame, error, setError } = game
   const [packs, setPacks] = useState(['gouts'])
-  const [count, setCount] = useState(10)
   const [busy, setBusy] = useState(false)
 
   const uids = playerUids(data)
@@ -24,7 +21,7 @@ export default function Lobby({ uid, game }) {
     setBusy(true)
     setError(null)
     try {
-      await startGame(packs, count)
+      await startGame(packs)
     } catch (e) {
       setError(e)
     } finally {
@@ -79,21 +76,8 @@ export default function Lobby({ uid, game }) {
             ))}
           </div>
 
-          <h3 className="card-title">Nombre de questions</h3>
-          <div className="segmented">
-            {QUESTION_COUNTS.map((n) => (
-              <button
-                key={n}
-                className={'seg' + (count === n ? ' active' : '')}
-                onClick={() => setCount(n)}
-                disabled={n > available && available > 0}
-              >
-                {n}
-              </button>
-            ))}
-          </div>
-          {available > 0 && count > available && (
-            <p className="muted tiny">Seulement {available} questions dans les packs choisis — la partie en aura {available}.</p>
+          {available > 0 && available < QUESTIONS_PER_GAME && (
+            <p className="muted tiny">Seulement {available} questions dans les packs choisis — la partie en aura {available} (au lieu de {QUESTIONS_PER_GAME}).</p>
           )}
 
           <button
