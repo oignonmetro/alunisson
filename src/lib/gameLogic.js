@@ -130,24 +130,3 @@ export function computeResults(game) {
   const pct = maxPoints ? Math.round((points / maxPoints) * 100) : 0
   return { matchCount, total, points, maxPoints, pct, details }
 }
-
-/**
- * Message de compatibilité fun en fonction du pourcentage.
- * @param {number} pct
- * @returns {{emoji: string, title: string, text: string}}
- */
-export function compatibilityMessage(pct) {
-  if (pct >= 90) {
-    return { emoji: '🔥', title: 'Fusionnels', text: 'Vous pensez pratiquement dans la même tête. Impressionnant !' }
-  }
-  if (pct >= 70) {
-    return { emoji: '💞', title: 'Grande complicité', text: 'Vous vous connaissez vraiment bien. Belle équipe !' }
-  }
-  if (pct >= 50) {
-    return { emoji: '😊', title: 'Sur la même longueur d’onde', text: 'Une belle harmonie, avec encore de jolies choses à découvrir.' }
-  }
-  if (pct >= 30) {
-    return { emoji: '🤔', title: 'À explorer', text: 'Quelques surprises ! De belles discussions en perspective.' }
-  }
-  return { emoji: '🌱', title: 'Tout à découvrir', text: 'Vous avez plein de choses à apprendre l’un de l’autre. C’est excitant !' }
-}
