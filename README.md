@@ -119,10 +119,19 @@ npx firebase deploy --only hosting --project VOTRE_PROJECT_ID
 ### Mode équipes (4 joueurs)
 
 À **4 joueurs**, le mode équipes s'active automatiquement : chacun choisit son
-camp (**Équipe A** ou **Équipe B**, 2 par équipe) dans le salon. Les 4 répondent
-aux mêmes questions ; **chaque duo marque quand ses deux membres coïncident**, et
-les équipes s'affrontent. À la révélation, on voit les réponses de tout le monde
-et le score de chaque équipe ; l'équipe la plus « à l'unisson » l'emporte.
+camp (**Équipe A** ou **Équipe B**, 2 par équipe) dans le salon.
+
+1. **Rédaction** : avant de jouer, chaque joueur écrit **une question pour l'équipe
+   adverse**.
+2. **7 manches** : 5 questions communes (packs, 2/3 pts) + **2 manches personnalisées**
+   où chaque équipe reçoit une question écrite par l'adversaire (**5 pts**).
+3. Sur une question personnalisée, l'équipe cible peut **« retourner la question »**
+   pour ne pas y répondre : c'est alors l'équipe adverse (l'autrice) qui tente de
+   gagner les 5 points.
+4. Comme partout, on marque quand **les deux membres du duo répondent la même chose**.
+
+À la révélation, on voit les réponses de tout le monde et le score de chaque équipe ;
+l'équipe la plus « à l'unisson » l'emporte.
 
 ---
 

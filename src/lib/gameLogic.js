@@ -7,6 +7,18 @@ import { isMatch } from './matching.js'
 /** Nombre de questions posées à chaque partie (fixe). */
 export const QUESTIONS_PER_GAME = 7
 
+/** Mode équipes : nombre de manches communes (packs) et de manches perso. */
+export const TEAMS_STANDARD_ROUNDS = 5
+export const TEAMS_CUSTOM_ROUNDS = 2
+
+/** Points d'une question personnalisée réussie (mode équipes). */
+export const CUSTOM_POINTS = 5
+
+/** Renvoie l'id de l'équipe adverse. */
+export function opponentTeam(id) {
+  return id === 'A' ? 'B' : 'A'
+}
+
 /**
  * Mélange (Fisher-Yates) une copie du tableau. `rng` injectable pour les tests.
  * @template T
@@ -44,6 +56,46 @@ export function buildQuestions(selectedPackIds, count, packsById, rng = Math.ran
   const shuffled = shuffle(pool, rng)
   const n = Math.max(0, Math.min(count, shuffled.length))
   return shuffled.slice(0, n)
+}
+
+/**
+ * Construit la séquence de 7 manches du mode équipes : 5 manches communes
+ * (packs) + 2 manches personnalisées. Chaque manche perso contient une
+ * question par équipe (rédigée par l'équipe adverse).
+ * @param {string[]} packs
+ * @param {Record<string, {questions:any[]}>} packsById
+ * @param {Record<string,string>} customPrompts  question écrite par chaque uid
+ * @param {{id:string, uids:string[]}[]} teams
+ * @param {() => number} [rng]
+ */
+export function buildTeamsSequence(packs, packsById, customPrompts, teams, rng = Math.random) {
+  const std = buildQuestions(packs, TEAMS_STANDARD_ROUNDS, packsById, rng).map((q) => ({ kind: 'standard', q }))
+  const teamA = teams.find((t) => t.id === 'A') || { uids: [] }
+  const teamB = teams.find((t) => t.id === 'B') || { uids: [] }
+  // Les questions écrites par l'équipe A visent l'équipe B, et inversement.
+  const promptsFor = (uids) => uids.map((u) => ({ text: (customPrompts?.[u] || '').trim(), author: u }))
+  const forB = promptsFor(teamA.uids) // écrites par A → slot B
+  const forA = promptsFor(teamB.uids) // écrites par B → slot A
+  const custom = [0, 1].map((k) => ({
+    kind: 'custom',
+    slots: {
+      A: { text: forA[k]?.text || '', author: forA[k]?.author || null, target: 'A' },
+      B: { text: forB[k]?.text || '', author: forB[k]?.author || null, target: 'B' },
+    },
+  }))
+  return shuffle([...std, ...custom], rng)
+}
+
+/**
+ * Équipe qui répond à un slot d'une manche perso : la cible, ou l'adversaire
+ * si la question a été retournée. Renvoie null tant que la décision n'est pas prise.
+ * @param {{returned?: boolean|null}} slotState  état du slot dans la manche
+ * @param {string} targetId  équipe cible du slot ('A' ou 'B')
+ * @returns {string|null}
+ */
+export function slotResponder(slotState, targetId) {
+  if (!slotState || slotState.returned == null) return null
+  return slotState.returned ? opponentTeam(targetId) : targetId
 }
 
 /**
@@ -147,13 +199,33 @@ export function pointsForQuestion(question) {
  */
 export function computeResults(game) {
   const teams = gameTeams(game)
-  const questions = game?.questions || []
+  const descs = game?.questions || []
   const rounds = game?.rounds || {}
   const agg = teams.map((t) => ({ ...t, points: 0, matchCount: 0 }))
+  const idxOf = Object.fromEntries(agg.map((t, i) => [t.id, i]))
   let maxPoints = 0
 
-  const details = questions.map((q, i) => {
+  const details = descs.map((desc, i) => {
     const round = rounds[String(i)] || {}
+
+    if (desc.kind === 'custom') {
+      const slots = {}
+      for (const key of ['A', 'B']) {
+        const s = round.slots?.[key] || {}
+        const responder = slotResponder(s, key)
+        const matched = s.matched === true
+        const earned = matched && responder ? CUSTOM_POINTS : 0
+        if (earned && idxOf[responder] != null) {
+          agg[idxOf[responder]].points += CUSTOM_POINTS
+          agg[idxOf[responder]].matchCount += 1
+        }
+        slots[key] = { desc: desc.slots[key], target: key, returned: s.returned ?? null, responder, matched, answers: s.answers || {}, points: earned }
+      }
+      return { index: i, kind: 'custom', slots }
+    }
+
+    // Manche standard (packs)
+    const q = desc.q
     const qp = pointsForQuestion(q)
     maxPoints += qp
     const perTeam = {}
@@ -165,10 +237,10 @@ export function computeResults(game) {
         agg[ti].matchCount += 1
       }
     })
-    return { index: i, question: q, answers: round.answers || {}, perTeam }
+    return { index: i, kind: 'standard', question: q, answers: round.answers || {}, perTeam }
   })
 
-  const total = questions.length
+  const total = descs.length
   const mode = gameMode(game)
   let winnerTeamId = null
   if (mode === 'teams' && agg.length === 2) {
