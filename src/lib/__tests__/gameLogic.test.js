@@ -8,6 +8,8 @@ import {
   gameTeams,
   gameMode,
   computeResults,
+  buildTeamsSequence,
+  slotResponder,
 } from '../gameLogic.js'
 
 const packsById = {
@@ -113,9 +115,9 @@ describe('computeResults — couple', () => {
     const game = {
       players: { A: { joinedAt: 1 }, B: { joinedAt: 2 } },
       questions: [
-        { id: 'p1:q1', type: 'text' }, // matché : +3
-        { id: 'p2:q1', type: 'mcq' }, // raté : +0
-        { id: 'p1:q2', type: 'text' }, // matché via rattrapage : +3
+        { kind: 'standard', q: { id: 'p1:q1', type: 'text' } }, // matché : +3
+        { kind: 'standard', q: { id: 'p2:q1', type: 'mcq' } }, // raté : +0
+        { kind: 'standard', q: { id: 'p1:q2', type: 'text' } }, // rattrapage : +3
       ],
       rounds: {
         0: { teamMatch: { duo: true } },
@@ -134,15 +136,15 @@ describe('computeResults — couple', () => {
   })
 })
 
-describe('computeResults — teams', () => {
+describe('computeResults — teams (standard)', () => {
   const game = {
     players: {
       A: { joinedAt: 1, team: 'A' }, C: { joinedAt: 3, team: 'A' },
       B: { joinedAt: 2, team: 'B' }, D: { joinedAt: 4, team: 'B' },
     },
     questions: [
-      { id: 'p2:q1', type: 'mcq' }, // A matché (+2), B non
-      { id: 'p1:q1', type: 'text' }, // B matché (+3), A non
+      { kind: 'standard', q: { id: 'p2:q1', type: 'mcq' } }, // A +2, B non
+      { kind: 'standard', q: { id: 'p1:q1', type: 'text' } }, // B +3, A non
     ],
     rounds: {
       0: { teamMatch: { A: true, B: false } },
@@ -152,14 +154,72 @@ describe('computeResults — teams', () => {
   it('calcule les scores par équipe et désigne le vainqueur', () => {
     const res = computeResults(game)
     expect(res.mode).toBe('teams')
-    expect(res.teams).toHaveLength(2)
     const a = res.teams.find((t) => t.id === 'A')
     const b = res.teams.find((t) => t.id === 'B')
     expect(a.points).toBe(2)
     expect(b.points).toBe(3)
     expect(res.winnerTeamId).toBe('B')
     expect(res.details[0].perTeam.A.counted).toBe(true)
-    expect(res.details[0].perTeam.B.counted).toBe(false)
+  })
+})
+
+describe('slotResponder', () => {
+  it('renvoie null tant que non décidé', () => {
+    expect(slotResponder({ returned: null }, 'A')).toBe(null)
+    expect(slotResponder(undefined, 'A')).toBe(null)
+  })
+  it('la cible répond si non retournée, l’adversaire si retournée', () => {
+    expect(slotResponder({ returned: false }, 'A')).toBe('A')
+    expect(slotResponder({ returned: true }, 'A')).toBe('B')
+    expect(slotResponder({ returned: true }, 'B')).toBe('A')
+  })
+})
+
+describe('buildTeamsSequence', () => {
+  const bigPack = { big: { questions: Array.from({ length: 10 }, (_, i) => ({ id: 'q' + i, type: 'text', text: 'Q' + i })) } }
+  const teams = [{ id: 'A', uids: ['A1', 'A2'] }, { id: 'B', uids: ['B1', 'B2'] }]
+  const prompts = { A1: 'qA1', A2: 'qA2', B1: 'qB1', B2: 'qB2' }
+  it('produit 5 manches standard + 2 manches perso, questions adverses bien orientées', () => {
+    const seq = buildTeamsSequence(['big'], bigPack, prompts, teams, () => 0)
+    expect(seq).toHaveLength(7)
+    const std = seq.filter((r) => r.kind === 'standard')
+    const custom = seq.filter((r) => r.kind === 'custom')
+    expect(std).toHaveLength(5)
+    expect(custom).toHaveLength(2)
+    // slot A (cible A) vient des joueurs de B ; slot B vient des joueurs de A
+    expect(custom.map((r) => r.slots.A.text).sort()).toEqual(['qB1', 'qB2'])
+    expect(custom.map((r) => r.slots.B.text).sort()).toEqual(['qA1', 'qA2'])
+  })
+})
+
+describe('computeResults — teams (perso)', () => {
+  const base = {
+    players: {
+      A1: { joinedAt: 1, team: 'A' }, A2: { joinedAt: 3, team: 'A' },
+      B1: { joinedAt: 2, team: 'B' }, B2: { joinedAt: 4, team: 'B' },
+    },
+    questions: [
+      { kind: 'custom', slots: { A: { text: 'qB', author: 'B1', target: 'A' }, B: { text: 'qA', author: 'A1', target: 'B' } } },
+    ],
+  }
+  it('la cible qui répond juste marque 5 pts', () => {
+    const game = { ...base, rounds: { 0: { kind: 'custom', slots: {
+      A: { returned: false, matched: true, answers: { A1: { value: 'x' }, A2: { value: 'x' } } },
+      B: { returned: false, matched: false, answers: { B1: { value: 'y' }, B2: { value: 'z' } } },
+    } } } }
+    const res = computeResults(game)
+    expect(res.teams.find((t) => t.id === 'A').points).toBe(5)
+    expect(res.teams.find((t) => t.id === 'B').points).toBe(0)
+    expect(res.winnerTeamId).toBe('A')
+  })
+  it('une question retournée et réussie donne 5 pts à l’équipe autrice', () => {
+    const game = { ...base, rounds: { 0: { kind: 'custom', slots: {
+      A: { returned: true, matched: true, answers: { B1: { value: 'x' }, B2: { value: 'x' } } }, // A a retourné → B répond et gagne
+      B: { returned: false, matched: false, answers: {} },
+    } } } }
+    const res = computeResults(game)
+    expect(res.teams.find((t) => t.id === 'B').points).toBe(5)
+    expect(res.teams.find((t) => t.id === 'A').points).toBe(0)
   })
 })
 

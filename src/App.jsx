@@ -4,6 +4,7 @@ import { isFirebaseConfigured } from './firebase.js'
 import { playerUids } from './lib/players.js'
 import Home from './screens/Home.jsx'
 import Lobby from './screens/Lobby.jsx'
+import Writing from './screens/Writing.jsx'
 import Question from './screens/Question.jsx'
 import Reveal from './screens/Reveal.jsx'
 import Results from './screens/Results.jsx'
@@ -36,6 +37,10 @@ export default function App() {
 
   if (game.status === 'lobby') {
     return <Lobby uid={uid} game={g} />
+  }
+
+  if (game.status === 'writing') {
+    return <Writing uid={uid} game={g} />
   }
 
   // La partie était en cours (ou terminée) et un joueur manque à l'appel :

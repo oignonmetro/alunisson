@@ -19,10 +19,28 @@ import {
 } from 'firebase/firestore'
 import { db } from '../firebase.js'
 import { generateCode } from '../lib/gameCode.js'
-import { buildQuestions, computeAutoMatch, allAnswered, gameTeams, QUESTIONS_PER_GAME } from '../lib/gameLogic.js'
+import {
+  buildQuestions,
+  buildTeamsSequence,
+  computeAutoMatch,
+  allAnswered,
+  gameTeams,
+  slotResponder,
+  QUESTIONS_PER_GAME,
+} from '../lib/gameLogic.js'
 import { PACKS_BY_ID } from '../data/packs/index.js'
 
 const gameDoc = (code) => doc(db, 'games', code)
+
+/** Structure par défaut d'une manche perso (2 slots), en fusionnant l'existant. */
+function normalizeCustomRound(round) {
+  const base = { kind: 'custom', revealed: false, slots: { A: {}, B: {} }, ...(round || {}) }
+  base.slots = {
+    A: { returned: null, answers: {}, matched: null, ...(round?.slots?.A || {}) },
+    B: { returned: null, answers: {}, matched: null, ...(round?.slots?.B || {}) },
+  }
+  return base
+}
 
 export function useGame(uid) {
   const [code, setCode] = useState(null)
@@ -171,7 +189,20 @@ export function useGame(uid) {
           const b = Object.keys(players).filter((u) => players[u].team === 'B').length
           if (a !== 2 || b !== 2) throw new Error('Répartissez-vous en 2 équipes de 2.')
         }
-        const questions = buildQuestions(packs, QUESTIONS_PER_GAME, PACKS_BY_ID)
+        if (mode === 'teams') {
+          // Le mode équipes passe d'abord par la phase de rédaction des
+          // questions personnalisées ; la séquence est construite ensuite.
+          tx.update(ref, {
+            status: 'writing',
+            config: { packs, mode, playerCount: n },
+            customPrompts: {},
+            questions: [],
+            rounds: {},
+            currentIndex: 0,
+          })
+          return
+        }
+        const questions = buildQuestions(packs, QUESTIONS_PER_GAME, PACKS_BY_ID).map((q) => ({ kind: 'standard', q }))
         if (questions.length === 0) throw new Error('Choisissez au moins un pack de questions.')
         tx.update(ref, {
           status: 'playing',
@@ -185,20 +216,102 @@ export function useGame(uid) {
     [code, uid],
   )
 
-  // Soumet la réponse du joueur pour la question courante. Quand TOUS les
-  // joueurs ont répondu, révèle la manche et calcule le match de chaque
-  // équipe dans la même transaction.
+  // Phase de rédaction (mode équipes) : chaque joueur écrit une question pour
+  // l'équipe adverse. Quand les 4 ont écrit, on construit la séquence et on lance.
+  const submitPrompt = useCallback(
+    async (text) => {
+      await runTransaction(db, async (tx) => {
+        const ref = gameDoc(code)
+        const snap = await tx.get(ref)
+        if (!snap.exists()) throw new Error('Partie introuvable.')
+        const data = snap.data()
+        if (data.status !== 'writing') return
+        const prompts = { ...(data.customPrompts || {}), [uid]: (text || '').trim() }
+        const playerUids = Object.keys(data.players || {})
+        const allWritten = playerUids.every((u) => (prompts[u] || '').length > 0)
+        if (!allWritten) {
+          tx.update(ref, { [`customPrompts.${uid}`]: (text || '').trim() })
+          return
+        }
+        const questions = buildTeamsSequence(data.config.packs, PACKS_BY_ID, prompts, gameTeams(data))
+        tx.update(ref, {
+          customPrompts: prompts,
+          questions,
+          status: 'playing',
+          currentIndex: 0,
+          rounds: {},
+        })
+      })
+    },
+    [code, uid],
+  )
+
+  // Manche perso : le premier membre de l'équipe cible tranche « répondre »
+  // (returned=false) ou « retourner » (returned=true) — décision verrouillée.
+  const decideSlot = useCallback(
+    async (slotKey, returned) => {
+      await runTransaction(db, async (tx) => {
+        const ref = gameDoc(code)
+        const snap = await tx.get(ref)
+        if (!snap.exists()) return
+        const data = snap.data()
+        if (data.players?.[uid]?.team !== slotKey) return // seule l'équipe cible décide
+        const idx = data.currentIndex
+        const desc = data.questions?.[idx]
+        if (desc?.kind !== 'custom') return
+        const round = normalizeCustomRound(data.rounds?.[idx])
+        if (round.slots[slotKey].returned != null) return // déjà décidé
+        round.slots[slotKey].returned = returned
+        tx.update(ref, { [`rounds.${idx}`]: round })
+      })
+    },
+    [code, uid],
+  )
+
+  // Soumet la réponse du joueur pour la manche courante.
+  //  - manche standard : tous répondent, révélation + match par équipe.
+  //  - manche perso : on répond un slot précis ; révélation quand les deux
+  //    slots sont décidés et que leurs équipes-répondantes ont soumis.
   const submitAnswer = useCallback(
-    async (value) => {
+    async (value, slotKey) => {
       await runTransaction(db, async (tx) => {
         const ref = gameDoc(code)
         const snap = await tx.get(ref)
         if (!snap.exists()) throw new Error('Partie introuvable.')
         const data = snap.data()
         const idx = data.currentIndex
+        const desc = data.questions?.[idx]
+        const teams = gameTeams(data)
+
+        if (desc?.kind === 'custom') {
+          const round = normalizeCustomRound(data.rounds?.[idx])
+          const slot = round.slots[slotKey]
+          if (slot.returned == null) return // décision pas encore prise
+          const responderId = slotResponder(slot, slotKey)
+          const responder = teams.find((t) => t.id === responderId)
+          if (!responder?.uids.includes(uid)) return // pas à ce joueur de répondre
+          slot.answers = { ...slot.answers, [uid]: { value, submitted: true } }
+          if (responder.uids.every((u) => slot.answers[u]?.submitted)) {
+            slot.matched = computeAutoMatch({ type: 'text' }, slot.answers, responder.uids)
+          }
+          // Révélation quand les 2 slots sont décidés et complets.
+          const complete = ['A', 'B'].every((key) => {
+            const s = round.slots[key]
+            if (s.returned == null) return false
+            const rid = slotResponder(s, key)
+            const rUids = teams.find((t) => t.id === rid)?.uids || []
+            return rUids.every((u) => s.answers?.[u]?.submitted)
+          })
+          if (complete) round.revealed = true
+          tx.update(ref, { [`rounds.${idx}`]: round })
+          return
+        }
+
+        // Manche standard
         const playerUids = Object.keys(data.players || {})
         const rounds = data.rounds || {}
         const round = {
+          kind: 'standard',
           answers: {},
           revealed: false,
           teamMatch: {},
@@ -208,10 +321,9 @@ export function useGame(uid) {
         round.answers = { ...round.answers, [uid]: { value, submitted: true } }
         if (!round.revealed && allAnswered(round, playerUids)) {
           round.revealed = true
-          const question = data.questions[idx]
           round.teamMatch = {}
-          for (const team of gameTeams(data)) {
-            round.teamMatch[team.id] = computeAutoMatch(question, round.answers, team.uids)
+          for (const team of teams) {
+            round.teamMatch[team.id] = computeAutoMatch(desc.q, round.answers, team.uids)
           }
         }
         tx.update(ref, { [`rounds.${idx}`]: round })
@@ -256,7 +368,7 @@ export function useGame(uid) {
       const ref = gameDoc(code)
       const snap = await tx.get(ref)
       if (!snap.exists()) return
-      tx.update(ref, { status: 'lobby', questions: [], currentIndex: 0, rounds: {} })
+      tx.update(ref, { status: 'lobby', questions: [], currentIndex: 0, rounds: {}, customPrompts: {} })
     })
   }, [code])
 
@@ -270,6 +382,8 @@ export function useGame(uid) {
     joinGame,
     setTeam,
     startGame,
+    submitPrompt,
+    decideSlot,
     submitAnswer,
     setOverride,
     nextQuestion,

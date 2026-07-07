@@ -50,30 +50,56 @@ export default function Results({ uid, game }) {
       <div className="recap">
         <h3 className="section-title">Récapitulatif</h3>
         {res.details.map((d) => (
-          <div key={d.index} className="recap-row">
-            <div className="recap-q">{d.question.text}</div>
-            <div className="recap-teams">
-              {teams.map((team) => {
-                const pt = d.perTeam[team.id] || {}
-                return (
-                  <div key={team.id} className={'recap-team ' + (pt.counted ? 'ok' : 'ko')}>
-                    <div className="recap-team-head">
-                      <span className="recap-mark">{pt.counted ? '✅' : '❌'}</span>
-                      {isTeams && <span style={{ color: TEAM_META[team.id].color }}>{team.name}</span>}
-                      <span className="recap-points">{pt.counted ? `+${pt.points}` : '+0'}</span>
+          d.kind === 'custom' ? (
+            <div key={d.index} className="recap-row">
+              <div className="recap-q">Manche spéciale — questions personnalisées (5 pts)</div>
+              <div className="recap-teams">
+                {['A', 'B'].map((key) => {
+                  const s = d.slots[key]
+                  return (
+                    <div key={key} className={'recap-team ' + (s.matched ? 'ok' : 'ko')}>
+                      <div className="recap-team-head">
+                        <span className="recap-mark">{s.matched ? '✅' : '❌'}</span>
+                        <span style={{ color: TEAM_META[key].color }}>Défi pour {TEAM_META[key].name}</span>
+                        <span className="recap-points">{s.matched ? `+${s.points}` : '+0'}</span>
+                      </div>
+                      <div className="recap-answers">
+                        <span className="recap-a">« {s.desc.text} »{s.returned ? ' ↩️ retournée' : ''}</span>
+                        {Object.entries(s.answers).map(([u, a]) => (
+                          <span key={u} className="recap-a"><b>{playerName(data, u)}:</b> {a?.value || '—'}</span>
+                        ))}
+                      </div>
                     </div>
-                    <div className="recap-answers">
-                      {team.uids.map((u) => (
-                        <span key={u} className="recap-a">
-                          <b>{playerName(data, u)}:</b> {labelForValue(d.question, data, d.answers?.[u]?.value)}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                )
-              })}
+                  )
+                })}
+              </div>
             </div>
-          </div>
+          ) : (
+            <div key={d.index} className="recap-row">
+              <div className="recap-q">{d.question.text}</div>
+              <div className="recap-teams">
+                {teams.map((team) => {
+                  const pt = d.perTeam[team.id] || {}
+                  return (
+                    <div key={team.id} className={'recap-team ' + (pt.counted ? 'ok' : 'ko')}>
+                      <div className="recap-team-head">
+                        <span className="recap-mark">{pt.counted ? '✅' : '❌'}</span>
+                        {isTeams && <span style={{ color: TEAM_META[team.id].color }}>{team.name}</span>}
+                        <span className="recap-points">{pt.counted ? `+${pt.points}` : '+0'}</span>
+                      </div>
+                      <div className="recap-answers">
+                        {team.uids.map((u) => (
+                          <span key={u} className="recap-a">
+                            <b>{playerName(data, u)}:</b> {labelForValue(d.question, data, d.answers?.[u]?.value)}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+          )
         ))}
       </div>
 

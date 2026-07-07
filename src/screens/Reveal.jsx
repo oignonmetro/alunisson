@@ -6,19 +6,18 @@ export default function Reveal({ uid, game }) {
   const { game: data, setOverride, nextQuestion, leaveGame, error, setError } = game
   const idx = data.currentIndex
   const total = data.questions.length
-  const question = data.questions[idx]
+  const desc = data.questions[idx]
   const round = data.rounds?.[idx] || {}
   const isLast = idx + 1 >= total
 
   const res = computeResults(data)
   const teams = teamsOf(data)
-  const detail = res.details[idx] || { perTeam: {} }
+  const detail = res.details[idx] || {}
   const myOverride = Boolean(round.overrides?.[uid])
   const [busy, setBusy] = useState(false)
 
   async function act(fn) {
-    setBusy(true)
-    setError(null)
+    setBusy(true); setError(null)
     try { await fn() } catch (e) { setError(e) } finally { setBusy(false) }
   }
 
@@ -31,7 +30,7 @@ export default function Reveal({ uid, game }) {
 
       <div className="q-count">Question {idx + 1} / {total}</div>
 
-      {res.mode === 'teams' ? (
+      {res.mode === 'teams' && (
         <div className="scoreboard">
           {res.teams.map((t) => (
             <div key={t.id} className="score-cell">
@@ -40,24 +39,46 @@ export default function Reveal({ uid, game }) {
             </div>
           ))}
         </div>
-      ) : null}
+      )}
 
+      {desc.kind === 'custom' ? (
+        <CustomReveal data={data} detail={detail} />
+      ) : (
+        <StandardReveal
+          uid={uid} data={data} question={desc.q} round={round} teams={teams} detail={detail}
+          mode={res.mode} myOverride={myOverride} busy={busy}
+          onOverride={() => act(setOverride)}
+        />
+      )}
+
+      <button className="btn btn-primary" disabled={busy} onClick={() => act(nextQuestion)}>
+        {isLast ? 'Voir les résultats 🎊' : 'Question suivante →'}
+      </button>
+      <p className="muted tiny center">N’importe qui peut passer à la suite.</p>
+
+      {error && <p className="error">{error.message}</p>}
+    </div>
+  )
+}
+
+/* ---------- Révélation standard ---------- */
+function StandardReveal({ uid, data, question, round, teams, detail, mode, myOverride, busy, onOverride }) {
+  return (
+    <>
       <div className="card question-card">
         <h2 className="q-text small">{question.text}</h2>
       </div>
 
       {teams.map((team) => {
-        const counted = detail.perTeam[team.id]?.counted
-        const earned = detail.perTeam[team.id]?.points || 0
+        const counted = detail.perTeam?.[team.id]?.counted
+        const earned = detail.perTeam?.[team.id]?.points || 0
         const autoMatch = round.teamMatch?.[team.id] === true
         const isMine = team.uids.includes(uid)
         const canRattrapage = question.type === 'text' && !autoMatch && !counted
 
         return (
-          <div key={team.id} className="team-result" style={res.mode === 'teams' ? { borderColor: team.color } : undefined}>
-            {res.mode === 'teams' && (
-              <div className="team-head" style={{ color: team.color }}>{team.name}</div>
-            )}
+          <div key={team.id} className="team-result" style={mode === 'teams' ? { borderColor: team.color } : undefined}>
+            {mode === 'teams' && <div className="team-head" style={{ color: team.color }}>{team.name}</div>}
             <div className={'verdict small ' + (counted ? 'match' : 'nomatch')}>
               {counted ? '✅ En accord' : '❌ Réponses différentes'}
               {counted && <span className="verdict-points"> +{earned}</span>}
@@ -81,25 +102,53 @@ export default function Reveal({ uid, game }) {
                   ))}
                 </div>
                 {isMine && !myOverride && (
-                  <button className="btn btn-ghost" disabled={busy} onClick={() => act(setOverride)}>
-                    Ça compte quand même 🤝
-                  </button>
+                  <button className="btn btn-ghost" disabled={busy} onClick={onOverride}>Ça compte quand même 🤝</button>
                 )}
-                {isMine && myOverride && (
-                  <p className="muted tiny center">En attente de la validation de ton binôme…</p>
-                )}
+                {isMine && myOverride && <p className="muted tiny center">En attente de la validation de ton binôme…</p>}
               </div>
             )}
           </div>
         )
       })}
+    </>
+  )
+}
 
-      <button className="btn btn-primary" disabled={busy} onClick={() => act(nextQuestion)}>
-        {isLast ? 'Voir les résultats 🎊' : 'Question suivante →'}
-      </button>
-      <p className="muted tiny center">N’importe qui peut passer à la suite.</p>
-
-      {error && <p className="error">{error.message}</p>}
-    </div>
+/* ---------- Révélation perso (2 slots) ---------- */
+function CustomReveal({ data, detail }) {
+  return (
+    <>
+      <div className="q-count muted tiny">Manche spéciale · questions personnalisées (5 pts)</div>
+      {['A', 'B'].map((key) => {
+        const s = detail.slots?.[key]
+        if (!s) return null
+        const responderId = s.responder
+        const returned = s.returned === true
+        return (
+          <div key={key} className="team-result" style={{ borderColor: TEAM_META[key].color }}>
+            <div className="team-head" style={{ color: TEAM_META[key].color }}>
+              Défi pour {TEAM_META[key].name}
+            </div>
+            <p className="muted tiny">« {s.desc.text} » — par {playerName(data, s.desc.author)}</p>
+            {returned && (
+              <p className="muted tiny">↩️ Retournée → répondue par {responderId ? TEAM_META[responderId].name : '—'}</p>
+            )}
+            <div className={'verdict small ' + (s.matched ? 'match' : 'nomatch')}>
+              {s.matched ? '✅ En accord' : '❌ Pas d’accord'}
+              <span className="verdict-points"> +{s.points}</span>
+              {responderId && <span className="muted tiny"> ({TEAM_META[responderId].name})</span>}
+            </div>
+            <div className="answers">
+              {Object.entries(s.answers).map(([u, a]) => (
+                <div key={u} className="answer-row">
+                  <span className="answer-name">{playerName(data, u)}</span>
+                  <span className="answer-value">{a?.value || '—'}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )
+      })}
+    </>
   )
 }
