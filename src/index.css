@@ -146,6 +146,7 @@ input:focus { border-color: var(--primary); }
 .verdict { text-align: center; font-size: 22px; font-weight: 600; padding: 8px; }
 .verdict.small { font-size: 17px; padding: 2px; }
 .verdict.match { color: var(--ok); }
+.verdict.partial { color: var(--accent); }
 .verdict.nomatch { color: var(--ko); }
 .verdict-points { font-weight: 500; color: var(--ok); }
 .answers { display: flex; flex-direction: column; gap: 10px; }
@@ -172,6 +173,7 @@ input:focus { border-color: var(--primary); }
 .recap-teams { display: flex; flex-direction: column; gap: 8px; }
 .recap-team { border-left: 3px solid var(--card-border); padding-left: 10px; }
 .recap-team.ok { border-left-color: var(--ok); }
+.recap-team.partial { border-left-color: var(--accent); }
 .recap-team.ko { border-left-color: var(--ko); }
 .recap-team-head { display: flex; align-items: center; gap: 6px; font-weight: 500; font-size: 13px; margin-bottom: 2px; }
 .recap-mark { }

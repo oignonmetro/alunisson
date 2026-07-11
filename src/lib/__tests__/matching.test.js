@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { normalize, isMatch } from '../matching.js'
+import { normalize, isMatch, isPartialMatch } from '../matching.js'
 
 describe('normalize', () => {
   it('supprime accents, casse et ponctuation', () => {
@@ -28,6 +28,26 @@ describe('isMatch - mcq', () => {
   })
   it('faux si une réponse manque', () => {
     expect(isMatch(q, 'a', null)).toBe(false)
+  })
+})
+
+describe('isPartialMatch - who', () => {
+  const q = { type: 'who' }
+  it('vrai si « aucun des deux » face à « tous les deux »', () => {
+    expect(isPartialMatch(q, 'neither', 'both')).toBe(true)
+    expect(isPartialMatch(q, 'both', 'neither')).toBe(true)
+  })
+  it('faux si accord complet (both/both ou neither/neither)', () => {
+    expect(isPartialMatch(q, 'both', 'both')).toBe(false)
+    expect(isPartialMatch(q, 'neither', 'neither')).toBe(false)
+  })
+  it('faux si l’un des deux désigne un joueur précis', () => {
+    expect(isPartialMatch(q, 'uidA', 'neither')).toBe(false)
+    expect(isPartialMatch(q, 'both', 'uidB')).toBe(false)
+  })
+  it('ne s’applique pas aux mcq/text', () => {
+    expect(isPartialMatch({ type: 'mcq' }, 'neither', 'both')).toBe(false)
+    expect(isPartialMatch({ type: 'text' }, 'neither', 'both')).toBe(false)
   })
 })
 

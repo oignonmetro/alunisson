@@ -44,3 +44,20 @@ export function isMatch(question, a, b) {
   if (na === '' || nb === '') return false
   return na === nb
 }
+
+/**
+ * Indique si deux réponses à une question « qui de nous deux » sont
+ * « presque en accord » : l'une dit « aucun des deux », l'autre « tous les
+ * deux ». Ça ne pointe vers personne en particulier dans les deux cas, donc
+ * ça revient plus ou moins au même — vaut un demi-point (cf. gameLogic.js).
+ * @param {{type: string}} question
+ * @param {*} a
+ * @param {*} b
+ * @returns {boolean}
+ */
+export function isPartialMatch(question, a, b) {
+  if (question?.type !== 'who') return false
+  if (a == null || b == null) return false
+  const set = new Set([String(a), String(b)])
+  return set.size === 2 && set.has('both') && set.has('neither')
+}
