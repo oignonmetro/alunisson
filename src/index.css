@@ -26,6 +26,7 @@ body {
 }
 
 button { font-family: inherit; }
+b, strong { font-weight: 600; }
 
 /* ---------- Layout ---------- */
 .screen {
@@ -44,7 +45,7 @@ button { font-family: inherit; }
 .hero { text-align: center; margin: 24px 0 8px; }
 .brand {
   font-size: 34px;
-  font-weight: 800;
+  font-weight: 600;
   letter-spacing: -0.5px;
   background: linear-gradient(120deg, var(--primary-2), var(--accent));
   -webkit-background-clip: text;
@@ -77,14 +78,14 @@ button { font-family: inherit; }
 /* ---------- Buttons ---------- */
 .btn {
   border: none; border-radius: 14px; padding: 15px 18px;
-  font-size: 16px; font-weight: 700; cursor: pointer;
+  font-size: 16px; font-weight: 500; cursor: pointer;
   transition: transform .08s ease, opacity .2s ease, background .2s ease;
 }
 .btn:active { transform: scale(0.98); }
 .btn:disabled { opacity: 0.45; cursor: not-allowed; }
 .btn-primary { color: #fff; background: linear-gradient(120deg, var(--primary), var(--accent)); box-shadow: 0 8px 24px rgba(255, 94, 138, 0.30); }
 .btn-ghost { color: var(--text); background: var(--card); border: 1px solid var(--card-border); }
-.btn-link { background: none; color: var(--muted); font-weight: 600; padding: 8px; }
+.btn-link { background: none; color: var(--muted); font-weight: 500; padding: 8px; }
 
 /* ---------- Forms ---------- */
 .field { display: flex; flex-direction: column; gap: 6px; }
@@ -95,18 +96,18 @@ input {
   border: 1px solid var(--card-border); border-radius: 12px; outline: none;
 }
 input:focus { border-color: var(--primary); }
-.code-input { letter-spacing: 4px; text-align: center; font-weight: 800; font-size: 18px; }
+.code-input { letter-spacing: 4px; text-align: center; font-weight: 600; font-size: 18px; }
 
 /* ---------- Lobby ---------- */
-.card-title { font-weight: 700; font-size: 16px; margin: 0; }
+.card-title { font-weight: 500; font-size: 16px; margin: 0; }
 .code-big {
   border: none; background: none; cursor: pointer; padding: 4px 0;
-  color: var(--primary-2); font-weight: 800; font-size: 30px; letter-spacing: 10px;
+  color: var(--primary-2); font-weight: 600; font-size: 30px; letter-spacing: 10px;
 }
 .list { display: flex; flex-direction: column; gap: 10px; }
 .list-row {
   text-align: left; background: rgba(255,255,255,0.06); border: 1px solid var(--card-border);
-  border-radius: 14px; padding: 14px 16px; font-weight: 600; font-size: 15px; color: var(--text);
+  border-radius: 14px; padding: 14px 16px; font-weight: 500; font-size: 15px; color: var(--text);
 }
 .list-row.selectable { cursor: pointer; transition: border .15s, transform .08s; }
 .list-row.selectable:active { transform: scale(0.99); }
@@ -120,7 +121,7 @@ input:focus { border-color: var(--primary); }
 .question-card { text-align: center; padding: 26px 20px; }
 .question-card.custom { border: 1.5px solid var(--accent); }
 .q-pack { font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 10px; }
-.q-pack.pts5 { color: var(--accent); font-weight: 800; }
+.q-pack.pts5 { color: var(--accent); font-weight: 600; }
 .q-text { font-size: 22px; line-height: 1.35; margin: 0; }
 .q-text.small { font-size: 18px; }
 
@@ -142,48 +143,48 @@ input:focus { border-color: var(--primary); }
 @keyframes spin { to { transform: rotate(360deg); } }
 
 /* ---------- Reveal ---------- */
-.verdict { text-align: center; font-size: 22px; font-weight: 800; padding: 8px; }
+.verdict { text-align: center; font-size: 22px; font-weight: 600; padding: 8px; }
 .verdict.small { font-size: 17px; padding: 2px; }
 .verdict.match { color: var(--ok); }
 .verdict.nomatch { color: var(--ko); }
-.verdict-points { font-weight: 700; color: var(--ok); }
+.verdict-points { font-weight: 500; color: var(--ok); }
 .answers { display: flex; flex-direction: column; gap: 10px; }
 .answer-row {
   display: flex; justify-content: space-between; align-items: center; gap: 12px;
   background: var(--card); border: 1px solid var(--card-border); border-radius: 14px; padding: 14px 16px;
 }
 .answer-name { color: var(--muted); font-size: 14px; }
-.answer-value { font-weight: 700; font-size: 16px; text-align: right; }
+.answer-value { font-weight: 500; font-size: 16px; text-align: right; }
 .rattrapage { margin-top: 4px; }
-.rattrapage-status { display: flex; justify-content: center; gap: 20px; font-weight: 600; }
+.rattrapage-status { display: flex; justify-content: center; gap: 20px; font-weight: 500; }
 .rattrapage-status .ok { color: var(--ok); }
 
 /* ---------- Results ---------- */
 .result-hero { text-align: center; padding: 10px 0; }
-.score-big { font-size: 56px; font-weight: 800; line-height: 1; }
+.score-big { font-size: 56px; font-weight: 600; line-height: 1; }
 .score-total { font-size: 26px; color: var(--muted); }
 .gauge { height: 12px; background: rgba(255,255,255,0.08); border-radius: 999px; overflow: hidden; margin: 16px auto; max-width: 260px; }
 .gauge-fill { height: 100%; background: linear-gradient(90deg, var(--primary), var(--accent)); transition: width .6s ease; }
 
 .recap { display: flex; flex-direction: column; gap: 10px; }
 .recap-row { border-radius: 14px; padding: 12px 14px; border: 1px solid var(--card-border); background: var(--card); }
-.recap-q { font-weight: 600; font-size: 14px; margin-bottom: 8px; }
+.recap-q { font-weight: 500; font-size: 14px; margin-bottom: 8px; }
 .recap-teams { display: flex; flex-direction: column; gap: 8px; }
 .recap-team { border-left: 3px solid var(--card-border); padding-left: 10px; }
 .recap-team.ok { border-left-color: var(--ok); }
 .recap-team.ko { border-left-color: var(--ko); }
-.recap-team-head { display: flex; align-items: center; gap: 6px; font-weight: 700; font-size: 13px; margin-bottom: 2px; }
+.recap-team-head { display: flex; align-items: center; gap: 6px; font-weight: 500; font-size: 13px; margin-bottom: 2px; }
 .recap-mark { }
-.recap-points { margin-left: auto; font-weight: 700; color: var(--muted); font-size: 12px; }
+.recap-points { margin-left: auto; font-weight: 500; color: var(--muted); font-size: 12px; }
 .recap-answers { display: flex; flex-direction: column; gap: 2px; font-size: 13px; color: var(--muted); }
 .recap-a b { color: var(--text); font-weight: 600; }
 
 /* ---------- Teams (mode 4 joueurs) ---------- */
 .player-line { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
-.team-tag { font-size: 12px; font-weight: 700; }
+.team-tag { font-size: 12px; font-weight: 500; }
 .team-buttons { display: flex; gap: 8px; }
 .team-btn {
-  flex: 1; padding: 12px; border-radius: 12px; font-weight: 700; font-size: 14px;
+  flex: 1; padding: 12px; border-radius: 12px; font-weight: 500; font-size: 14px;
   background: var(--card); border: 1.5px solid var(--card-border); color: var(--text); cursor: pointer;
 }
 .team-btn.active { background: rgba(255,255,255,0.06); }
@@ -194,19 +195,19 @@ input:focus { border-color: var(--primary); }
   flex: 1; display: flex; flex-direction: column; align-items: center; gap: 2px;
   background: var(--card); border: 1px solid var(--card-border); border-radius: 14px; padding: 10px;
 }
-.score-team { font-size: 13px; font-weight: 700; }
-.score-pts { font-size: 26px; font-weight: 800; }
+.score-team { font-size: 13px; font-weight: 500; }
+.score-pts { font-size: 26px; font-weight: 600; }
 
 .team-result { border: 1px solid var(--card-border); border-radius: 16px; padding: 14px; display: flex; flex-direction: column; gap: 10px; }
-.team-head { font-weight: 800; font-size: 14px; text-transform: uppercase; letter-spacing: 0.5px; }
+.team-head { font-weight: 600; font-size: 14px; text-transform: uppercase; letter-spacing: 0.5px; }
 
-.winner-banner { font-size: 22px; font-weight: 800; text-align: center; }
+.winner-banner { font-size: 22px; font-weight: 600; text-align: center; }
 .team-scores { display: flex; gap: 12px; justify-content: center; }
 .team-score-card {
   flex: 1; max-width: 180px; display: flex; flex-direction: column; align-items: center; gap: 2px;
   border: 2px solid var(--card-border); border-radius: 16px; padding: 16px 10px; background: var(--card);
 }
 .team-score-card.winner { background: rgba(255,255,255,0.06); }
-.team-score-name { font-size: 14px; font-weight: 800; }
+.team-score-name { font-size: 14px; font-weight: 600; }
 
 code { background: rgba(0,0,0,0.3); padding: 2px 6px; border-radius: 6px; font-size: 13px; }
