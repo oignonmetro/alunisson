@@ -2,8 +2,10 @@ import { describe, it, expect } from 'vitest'
 import {
   buildQuestions,
   computeAutoMatch,
+  computePartialMatch,
   allAnswered,
   isTeamCounted,
+  isTeamPartial,
   pointsForQuestion,
   gameTeams,
   gameMode,
@@ -45,6 +47,22 @@ describe('computeAutoMatch', () => {
   it('text : vrai malgré accents/casse', () => {
     const q = { type: 'text' }
     expect(computeAutoMatch(q, { A: { value: 'Été' }, B: { value: 'ete' } }, uids)).toBe(true)
+  })
+})
+
+describe('computePartialMatch', () => {
+  const uids = ['A', 'B']
+  const q = { type: 'who' }
+  it('vrai si un « aucun des deux » face à un « tous les deux »', () => {
+    expect(computePartialMatch(q, { A: { value: 'neither' }, B: { value: 'both' } }, uids)).toBe(true)
+    expect(computePartialMatch(q, { A: { value: 'both' }, B: { value: 'neither' } }, uids)).toBe(true)
+  })
+  it('faux si accord complet ou désaccord classique', () => {
+    expect(computePartialMatch(q, { A: { value: 'both' }, B: { value: 'both' } }, uids)).toBe(false)
+    expect(computePartialMatch(q, { A: { value: 'A' }, B: { value: 'neither' } }, uids)).toBe(false)
+  })
+  it('ne s’applique pas aux mcq/text', () => {
+    expect(computePartialMatch({ type: 'mcq' }, { A: { value: 'neither' }, B: { value: 'both' } }, uids)).toBe(false)
   })
 })
 
@@ -97,6 +115,17 @@ describe('isTeamCounted', () => {
   it('ne compte pas si un seul membre valide le rattrapage', () => {
     const round = { teamMatch: { A: false }, overrides: { A1: true } }
     expect(isTeamCounted(round, { type: 'text' }, team)).toBe(false)
+  })
+})
+
+describe('isTeamPartial', () => {
+  const team = { id: 'A', uids: ['A1', 'A2'] }
+  it('vrai si teamPartial marqué pour l’équipe', () => {
+    expect(isTeamPartial({ teamPartial: { A: true } }, team)).toBe(true)
+  })
+  it('faux sinon', () => {
+    expect(isTeamPartial({ teamPartial: { A: false } }, team)).toBe(false)
+    expect(isTeamPartial({}, team)).toBe(false)
   })
 })
 
@@ -220,6 +249,24 @@ describe('computeResults — teams (perso)', () => {
     const res = computeResults(game)
     expect(res.teams.find((t) => t.id === 'B').points).toBe(5)
     expect(res.teams.find((t) => t.id === 'A').points).toBe(0)
+  })
+})
+
+describe('computeResults — accord partiel (who)', () => {
+  it('« aucun des deux » vs « tous les deux » rapporte 1 point sans compter comme accord', () => {
+    const game = {
+      players: { A: { joinedAt: 1 }, B: { joinedAt: 2 } },
+      questions: [
+        { kind: 'standard', q: { id: 'p1:q1', type: 'who' } },
+      ],
+      rounds: {
+        0: { teamMatch: { duo: false }, teamPartial: { duo: true } },
+      },
+    }
+    const res = computeResults(game)
+    expect(res.teams[0].points).toBe(1)
+    expect(res.teams[0].matchCount).toBe(0) // pas un accord complet
+    expect(res.details[0].perTeam.duo).toEqual({ counted: false, partial: true, points: 1 })
   })
 })
 

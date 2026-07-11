@@ -71,6 +71,7 @@ function StandardReveal({ uid, data, question, round, teams, detail, mode, myOve
 
       {teams.map((team) => {
         const counted = detail.perTeam?.[team.id]?.counted
+        const partial = detail.perTeam?.[team.id]?.partial
         const earned = detail.perTeam?.[team.id]?.points || 0
         const autoMatch = round.teamMatch?.[team.id] === true
         const isMine = team.uids.includes(uid)
@@ -79,9 +80,9 @@ function StandardReveal({ uid, data, question, round, teams, detail, mode, myOve
         return (
           <div key={team.id} className="team-result" style={mode === 'teams' ? { borderColor: team.color } : undefined}>
             {mode === 'teams' && <div className="team-head" style={{ color: team.color }}>{team.name}</div>}
-            <div className={'verdict small ' + (counted ? 'match' : 'nomatch')}>
-              {counted ? '✅ En accord' : '❌ Réponses différentes'}
-              {counted && <span className="verdict-points"> +{earned}</span>}
+            <div className={'verdict small ' + (counted ? 'match' : partial ? 'partial' : 'nomatch')}>
+              {counted ? '✅ En accord' : partial ? '🤏 Presque en accord' : '❌ Réponses différentes'}
+              {(counted || partial) && <span className="verdict-points"> +{earned}</span>}
             </div>
             <div className="answers">
               {team.uids.map((u) => (

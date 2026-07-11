@@ -81,11 +81,11 @@ export default function Results({ uid, game }) {
                 {teams.map((team) => {
                   const pt = d.perTeam[team.id] || {}
                   return (
-                    <div key={team.id} className={'recap-team ' + (pt.counted ? 'ok' : 'ko')}>
+                    <div key={team.id} className={'recap-team ' + (pt.counted ? 'ok' : pt.partial ? 'partial' : 'ko')}>
                       <div className="recap-team-head">
-                        <span className="recap-mark">{pt.counted ? '✅' : '❌'}</span>
+                        <span className="recap-mark">{pt.counted ? '✅' : pt.partial ? '🤏' : '❌'}</span>
                         {isTeams && <span style={{ color: TEAM_META[team.id].color }}>{team.name}</span>}
-                        <span className="recap-points">{pt.counted ? `+${pt.points}` : '+0'}</span>
+                        <span className="recap-points">{(pt.counted || pt.partial) ? `+${pt.points}` : '+0'}</span>
                       </div>
                       <div className="recap-answers">
                         {team.uids.map((u) => (

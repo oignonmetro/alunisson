@@ -2,7 +2,7 @@
 // manche (auto-match + rattrapage), et calcul du score final.
 // Ces fonctions ne dépendent PAS de Firebase pour rester testables.
 
-import { isMatch } from './matching.js'
+import { isMatch, isPartialMatch } from './matching.js'
 
 /** Nombre de questions posées à chaque partie (fixe). */
 export const QUESTIONS_PER_GAME = 7
@@ -13,6 +13,9 @@ export const TEAMS_CUSTOM_ROUNDS = 2
 
 /** Points d'une question personnalisée réussie (mode équipes). */
 export const CUSTOM_POINTS = 5
+
+/** Points d'un accord partiel (« qui de nous deux » : aucun des deux / tous les deux). */
+export const PARTIAL_POINTS = 1
 
 /** Renvoie l'id de l'équipe adverse. */
 export function opponentTeam(id) {
@@ -153,6 +156,20 @@ export function computeAutoMatch(question, answers, uids) {
 }
 
 /**
+ * Correspondance partielle d'une paire (« qui de nous deux » : un « aucun
+ * des deux » et un « tous les deux » — ça revient plus ou moins au même).
+ * @param {{type: string}} question
+ * @param {Record<string, {value: any}>} answers  indexé par uid
+ * @param {string[]} uids  les deux membres d'une équipe
+ * @returns {boolean}
+ */
+export function computePartialMatch(question, answers, uids) {
+  if (!question || !answers || !uids || uids.length < 2) return false
+  const [a, b] = uids
+  return isPartialMatch(question, answers[a]?.value, answers[b]?.value)
+}
+
+/**
  * Vrai si tous les joueurs ont soumis leur réponse pour cette manche.
  * @param {{answers?: Record<string, {submitted?: boolean}>}} round
  * @param {string[]} playerUids
@@ -179,6 +196,20 @@ export function isTeamCounted(round, question, team) {
     return team.uids.every((uid) => round.overrides[uid] === true)
   }
   return false
+}
+
+/**
+ * Vrai si une manche « qui de nous deux » rapporte un accord partiel à une
+ * équipe (1 point) : un membre a répondu « aucun des deux », un autre
+ * « tous les deux ». Ne s'applique que si l'équipe n'a pas déjà l'accord
+ * complet.
+ * @param {{teamPartial?: Record<string, boolean>}} round
+ * @param {{id: string, uids: string[]}} team
+ * @returns {boolean}
+ */
+export function isTeamPartial(round, team) {
+  if (!round || !team) return false
+  return round.teamPartial?.[team.id] === true
 }
 
 /**
@@ -231,10 +262,14 @@ export function computeResults(game) {
     const perTeam = {}
     teams.forEach((team, ti) => {
       const counted = isTeamCounted(round, q, team)
-      perTeam[team.id] = { counted, points: counted ? qp : 0 }
+      const partial = !counted && isTeamPartial(round, team)
+      const pts = counted ? qp : (partial ? PARTIAL_POINTS : 0)
+      perTeam[team.id] = { counted, partial, points: pts }
       if (counted) {
         agg[ti].points += qp
         agg[ti].matchCount += 1
+      } else if (partial) {
+        agg[ti].points += PARTIAL_POINTS
       }
     })
     return { index: i, kind: 'standard', question: q, answers: round.answers || {}, perTeam }

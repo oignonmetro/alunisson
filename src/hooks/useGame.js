@@ -23,6 +23,7 @@ import {
   buildQuestions,
   buildTeamsSequence,
   computeAutoMatch,
+  computePartialMatch,
   allAnswered,
   gameTeams,
   slotResponder,
@@ -322,8 +323,11 @@ export function useGame(uid) {
         if (!round.revealed && allAnswered(round, playerUids)) {
           round.revealed = true
           round.teamMatch = {}
+          round.teamPartial = {}
           for (const team of teams) {
-            round.teamMatch[team.id] = computeAutoMatch(desc.q, round.answers, team.uids)
+            const full = computeAutoMatch(desc.q, round.answers, team.uids)
+            round.teamMatch[team.id] = full
+            round.teamPartial[team.id] = !full && computePartialMatch(desc.q, round.answers, team.uids)
           }
         }
         tx.update(ref, { [`rounds.${idx}`]: round })
