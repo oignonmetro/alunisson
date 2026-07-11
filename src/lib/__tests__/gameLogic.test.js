@@ -101,8 +101,8 @@ describe('isTeamCounted', () => {
 })
 
 describe('pointsForQuestion', () => {
-  it('les questions texte valent 3 points', () => {
-    expect(pointsForQuestion({ type: 'text' })).toBe(3)
+  it('les questions texte valent 5 points', () => {
+    expect(pointsForQuestion({ type: 'text' })).toBe(5)
   })
   it('mcq et who valent 2 points', () => {
     expect(pointsForQuestion({ type: 'mcq' })).toBe(2)
@@ -115,9 +115,9 @@ describe('computeResults — couple', () => {
     const game = {
       players: { A: { joinedAt: 1 }, B: { joinedAt: 2 } },
       questions: [
-        { kind: 'standard', q: { id: 'p1:q1', type: 'text' } }, // matché : +3
+        { kind: 'standard', q: { id: 'p1:q1', type: 'text' } }, // matché : +5
         { kind: 'standard', q: { id: 'p2:q1', type: 'mcq' } }, // raté : +0
-        { kind: 'standard', q: { id: 'p1:q2', type: 'text' } }, // rattrapage : +3
+        { kind: 'standard', q: { id: 'p1:q2', type: 'text' } }, // rattrapage : +5
       ],
       rounds: {
         0: { teamMatch: { duo: true } },
@@ -128,9 +128,9 @@ describe('computeResults — couple', () => {
     const res = computeResults(game)
     expect(res.mode).toBe('couple')
     expect(res.total).toBe(3)
-    expect(res.maxPoints).toBe(8) // 3 + 2 + 3
+    expect(res.maxPoints).toBe(12) // 5 + 2 + 5
     expect(res.teams).toHaveLength(1)
-    expect(res.teams[0].points).toBe(6) // 3 + 0 + 3
+    expect(res.teams[0].points).toBe(10) // 5 + 0 + 5
     expect(res.teams[0].matchCount).toBe(2)
     expect(res.winnerTeamId).toBe(null)
   })
@@ -144,7 +144,7 @@ describe('computeResults — teams (standard)', () => {
     },
     questions: [
       { kind: 'standard', q: { id: 'p2:q1', type: 'mcq' } }, // A +2, B non
-      { kind: 'standard', q: { id: 'p1:q1', type: 'text' } }, // B +3, A non
+      { kind: 'standard', q: { id: 'p1:q1', type: 'text' } }, // B +5, A non
     ],
     rounds: {
       0: { teamMatch: { A: true, B: false } },
@@ -157,7 +157,7 @@ describe('computeResults — teams (standard)', () => {
     const a = res.teams.find((t) => t.id === 'A')
     const b = res.teams.find((t) => t.id === 'B')
     expect(a.points).toBe(2)
-    expect(b.points).toBe(3)
+    expect(b.points).toBe(5)
     expect(res.winnerTeamId).toBe('B')
     expect(res.details[0].perTeam.A.counted).toBe(true)
   })

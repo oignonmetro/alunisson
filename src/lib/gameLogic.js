@@ -189,7 +189,7 @@ export function isTeamCounted(round, question, team) {
  * @returns {number}
  */
 export function pointsForQuestion(question) {
-  return question?.type === 'text' ? 3 : 2
+  return question?.type === 'text' ? 5 : 2
 }
 
 /**

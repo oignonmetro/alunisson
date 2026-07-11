@@ -113,7 +113,7 @@ npx firebase deploy --only hosting --project VOTRE_PROJECT_ID
 4. À chaque question, chacun répond **sans regarder l'écran de l'autre**.
 5. Les réponses se **révèlent** : ✅ en accord (point) ou ❌ différentes.
    Pour une réponse **texte** proche mais non identique, validez le **rattrapage**
-   dans le duo pour marquer le point. Barème : 2 pts (choix), 3 pts (texte).
+   dans le duo pour marquer le point. Barème : 2 pts (choix), 5 pts (texte).
 6. À la fin : **score et récapitulatif**. Rejouez à volonté !
 
 ### Mode équipes (4 joueurs)
@@ -123,7 +123,7 @@ camp (**Équipe A** ou **Équipe B**, 2 par équipe) dans le salon.
 
 1. **Rédaction** : avant de jouer, chaque joueur écrit **une question pour l'équipe
    adverse**.
-2. **7 manches** : 5 questions communes (packs, 2/3 pts) + **2 manches personnalisées**
+2. **7 manches** : 5 questions communes (packs, 2/5 pts) + **2 manches personnalisées**
    où chaque équipe reçoit une question écrite par l'adversaire (**5 pts**).
 3. Sur une question personnalisée, l'équipe cible peut **« retourner la question »**
    pour ne pas y répondre : c'est alors l'équipe adverse (l'autrice) qui tente de
