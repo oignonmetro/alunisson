@@ -49,7 +49,7 @@ export default function Home({ game }) {
             value={name}
             maxLength={20}
             onChange={(e) => setName(e.target.value)}
-            placeholder="Alex"
+            placeholder="Ton prénom"
           />
         </label>
       </div>
