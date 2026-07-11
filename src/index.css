@@ -95,7 +95,7 @@ input {
   border: 1px solid var(--card-border); border-radius: 12px; outline: none;
 }
 input:focus { border-color: var(--primary); }
-.code-input { letter-spacing: 8px; text-align: center; font-weight: 800; font-size: 26px; }
+.code-input { letter-spacing: 4px; text-align: center; font-weight: 800; font-size: 18px; }
 
 /* ---------- Lobby ---------- */
 .card-title { font-weight: 700; font-size: 16px; margin: 0; }
