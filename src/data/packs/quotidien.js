@@ -83,6 +83,7 @@ export default {
     },
     {
       id: 'courses',
+      audience: 'all',
       type: 'who',
       text: 'Qui gère les courses ?',
     },
@@ -94,6 +95,7 @@ export default {
     },
     {
       id: 'vaisselle',
+      audience: 'all',
       type: 'who',
       text: 'Qui fait la vaisselle le plus souvent ?',
     },
@@ -128,11 +130,13 @@ export default {
     },
     {
       id: 'plantes',
+      audience: 'all',
       type: 'who',
       text: 'Qui s’occupe des plantes ?',
     },
     {
       id: 'poubelle',
+      audience: 'all',
       type: 'who',
       text: 'Qui sort la poubelle ?',
     },
@@ -194,6 +198,7 @@ export default {
     },
     {
       id: 'liste-courses',
+      audience: 'all',
       type: 'who',
       text: 'Qui pense à faire la liste de courses ?',
     },
@@ -240,6 +245,7 @@ export default {
     },
     {
       id: 'soin-animal',
+      audience: 'all',
       type: 'who',
       text: 'Qui s’occupe le plus de l’animal (ou s’en occuperait) ?',
     },
@@ -269,6 +275,7 @@ export default {
     },
     {
       id: 'decide-deco',
+      audience: 'all',
       type: 'who',
       text: 'Qui décide de la déco ?',
     },
