@@ -3,6 +3,9 @@ import {
   buildQuestions,
   computeAutoMatch,
   computePartialMatch,
+  computeTrioConsensus,
+  trioGuessers,
+  buildTrioSequence,
   allAnswered,
   isTeamCounted,
   isTeamPartial,
@@ -96,6 +99,52 @@ describe('gameMode / gameTeams', () => {
   it('respecte config.mode s’il est présent', () => {
     const game = { config: { mode: 'couple' }, players: { A: { joinedAt: 1 }, B: { joinedAt: 2 } } }
     expect(gameMode(game)).toBe('couple')
+  })
+  it('déduit le mode trio à 3 joueurs, une seule équipe collective', () => {
+    const game = { players: { A: { joinedAt: 1 }, B: { joinedAt: 2 }, C: { joinedAt: 3 } } }
+    expect(gameMode(game)).toBe('trio')
+    expect(gameTeams(game)).toEqual([{ id: 'trio', uids: ['A', 'B', 'C'] }])
+  })
+})
+
+describe('trioGuessers', () => {
+  it('renvoie les 2 joueurs autres que la cible', () => {
+    expect(trioGuessers(['A', 'B', 'C'], 'B')).toEqual(['A', 'C'])
+  })
+})
+
+describe('buildTrioSequence', () => {
+  const bigPack = { big: { questions: Array.from({ length: 12 }, (_, i) => ({ id: 'q' + i, type: 'mcq', text: 'Q' + i, options: [] })) } }
+  it('produit 9 manches trio, chaque joueur ciblé 3 fois', () => {
+    const seq = buildTrioSequence(['big'], bigPack, ['A', 'B', 'C'], () => 0)
+    expect(seq).toHaveLength(9)
+    expect(seq.every((r) => r.kind === 'trio')).toBe(true)
+    const counts = seq.reduce((acc, r) => ({ ...acc, [r.target]: (acc[r.target] || 0) + 1 }), {})
+    expect(counts).toEqual({ A: 3, B: 3, C: 3 })
+  })
+})
+
+describe('computeTrioConsensus', () => {
+  const guessers = ['A', 'C']
+  it('consensus atteint si les deux ont soumis la même chose', () => {
+    const q = { type: 'mcq' }
+    const g = { A: { value: 'x', submitted: true }, C: { value: 'x', submitted: true } }
+    expect(computeTrioConsensus(q, g, guessers)).toEqual({ reached: true, value: 'x' })
+  })
+  it('pas de consensus si un seul a soumis', () => {
+    const q = { type: 'mcq' }
+    const g = { A: { value: 'x', submitted: true } }
+    expect(computeTrioConsensus(q, g, guessers).reached).toBe(false)
+  })
+  it('pas de consensus si désaccord', () => {
+    const q = { type: 'mcq' }
+    const g = { A: { value: 'x', submitted: true }, C: { value: 'y', submitted: true } }
+    expect(computeTrioConsensus(q, g, guessers).reached).toBe(false)
+  })
+  it('texte : consensus malgré casse/accents', () => {
+    const q = { type: 'text' }
+    const g = { A: { value: 'Été', submitted: true }, C: { value: 'ete', submitted: true } }
+    expect(computeTrioConsensus(q, g, guessers)).toEqual({ reached: true, value: 'Été' })
   })
 })
 
@@ -267,6 +316,37 @@ describe('computeResults — accord partiel (who)', () => {
     expect(res.teams[0].points).toBe(1)
     expect(res.teams[0].matchCount).toBe(0) // pas un accord complet
     expect(res.details[0].perTeam.duo).toEqual({ counted: false, partial: true, points: 1 })
+  })
+})
+
+describe('computeResults — trio', () => {
+  const base = {
+    players: { A: { joinedAt: 1 }, B: { joinedAt: 2 }, C: { joinedAt: 3 } },
+    questions: [
+      { kind: 'trio', q: { id: 'p:q1', type: 'mcq' }, target: 'C' }, // A+B devinent C
+      { kind: 'trio', q: { id: 'p:q2', type: 'text' }, target: 'A' }, // B+C devinent A
+      { kind: 'trio', q: { id: 'p:q3', type: 'mcq' }, target: 'B' }, // A+C devinent B
+    ],
+  }
+  it('score commun : +points quand le duo devine juste (consensus = cible)', () => {
+    const game = { ...base, rounds: {
+      // A & B tombent d'accord sur 'bleu' = réponse de C → +2
+      0: { kind: 'trio', target: 'C', targetAnswer: { value: 'bleu' }, guesses: { A: { value: 'bleu', submitted: true }, B: { value: 'bleu', submitted: true } } },
+      // B & C d'accord sur 'paris' mais A avait dit 'rome' → +0
+      1: { kind: 'trio', target: 'A', targetAnswer: { value: 'rome' }, guesses: { B: { value: 'paris', submitted: true }, C: { value: 'paris', submitted: true } } },
+      // A & C pas d'accord entre eux → +0
+      2: { kind: 'trio', target: 'B', targetAnswer: { value: 'chat' }, guesses: { A: { value: 'chat', submitted: true }, C: { value: 'chien', submitted: true } } },
+    } }
+    const res = computeResults(game)
+    expect(res.mode).toBe('trio')
+    expect(res.teams).toHaveLength(1)
+    expect(res.teams[0].points).toBe(2) // seule la 1re manche est gagnée
+    expect(res.teams[0].matchCount).toBe(1)
+    expect(res.maxPoints).toBe(9) // mcq(2) + text(5) + mcq(2)
+    expect(res.winnerTeamId).toBe(null) // pas de gagnant en trio
+    expect(res.details[0].matched).toBe(true)
+    expect(res.details[1].matched).toBe(false)
+    expect(res.details[2].consensus).toBe(null) // pas de consensus
   })
 })
 

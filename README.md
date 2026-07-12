@@ -108,7 +108,8 @@ npx firebase deploy --only hosting --project VOTRE_PROJECT_ID
 ## Comment on joue
 
 1. Un joueur **crée une partie** et partage le **code** à 4 lettres.
-2. Les autres **rejoignent** avec ce code (2 joueurs = mode couple, 4 joueurs = mode équipes).
+2. Les autres **rejoignent** avec ce code (2 joueurs = mode couple, 3 joueurs = mode trio,
+   4 joueurs = mode équipes).
 3. L'hôte choisit les **packs** de questions (chaque partie compte **7 questions**).
 4. À chaque question, chacun répond **sans regarder l'écran de l'autre**.
 5. Les réponses se **révèlent** : ✅ en accord (point) ou ❌ différentes.
@@ -133,6 +134,22 @@ camp (**Équipe A** ou **Équipe B**, 2 par équipe) dans le salon.
 À la révélation, on voit les réponses de tout le monde et le score de chaque équipe ;
 l'équipe la plus « à l'unisson » l'emporte.
 
+### Mode trio (3 joueurs)
+
+À **3 joueurs**, chaque partie compte **9 questions** (3 par joueur) et se joue en
+**deux temps** avec un **score commun** au trio (pas de gagnant) :
+
+1. **Phase 1** : chacun répond **seul** à ses 3 questions (les autres ne voient pas).
+2. **Phase 2** : pour chaque question, les **deux autres** doivent **se mettre d'accord**
+   pour répondre **comme la personne visée** (A + B devinent C, puis B + C devinent A,
+   etc.). La réponse commune n'est validée qu'au **consensus** : les deux devineurs
+   doivent proposer la **même** chose.
+3. Le trio marque les points de la question (2 pts choix, 5 pts texte) quand la réponse
+   commune correspond à celle de la cible.
+
+Les questions **« qui de nous deux »** deviennent **« qui de nous trois »** :
+les options sont alors *A / B / C / Les trois / Aucun des trois*.
+
 ---
 
 ## Développement
@@ -152,7 +169,7 @@ src/
   lib/          matching (correspondance), gameCode, gameLogic (score) — logique pure testée
   data/packs/   packs de questions (ajoutez-en un fichier ici)
   hooks/        useAuth (connexion anonyme), useGame (temps réel + actions)
-  screens/      Home, Lobby, Question, Reveal, Results
+  screens/      Home, Lobby, Writing (équipes), TrioAnswer (trio), Question, Reveal, Results
 firestore.rules Règles de sécurité Firestore
 ```
 
@@ -166,5 +183,5 @@ dans `src/data/packs/index.js`. Types de questions : `mcq` (options fixes),
 
 ## Et ensuite ?
 
-Prévu pour évoluer : mode **3 joueurs ou plus**, davantage de packs, création de
-questions personnalisées.
+Prévu pour évoluer : davantage de packs et de modes de jeu, réglages de partie
+personnalisables.

@@ -2,6 +2,41 @@ import { useState } from 'react'
 import { labelForValue, playerName, teamsOf, TEAM_META } from '../lib/players.js'
 import { computeResults } from '../lib/gameLogic.js'
 
+/* ---------- Révélation trio (cible vs réponse commune des 2 devineurs) ---------- */
+function TrioReveal({ uid, data, detail }) {
+  const target = detail.target
+  const question = detail.question
+  const matched = detail.matched
+  return (
+    <>
+      <div className="card question-card">
+        <h2 className="q-text small">{question.text}</h2>
+      </div>
+
+      <div className={'verdict ' + (matched ? 'match' : 'nomatch')}>
+        {matched ? '✅ Bien deviné !' : '❌ Raté'}
+        <span className="verdict-points"> +{detail.points}</span>
+      </div>
+
+      <div className="answers">
+        <div className="answer-row" style={{ borderColor: 'var(--primary)' }}>
+          <span className="answer-name">Réponse de {playerName(data, target)}{target === uid ? ' (toi)' : ''}</span>
+          <span className="answer-value">{labelForValue(question, data, detail.targetValue)}</span>
+        </div>
+        <div className="answer-row">
+          <span className="answer-name">Réponse commune du duo</span>
+          <span className="answer-value">
+            {detail.consensus != null ? labelForValue(question, data, detail.consensus) : '—'}
+          </span>
+        </div>
+        {detail.consensus == null && (
+          <p className="muted tiny center">Les deux devineurs n’étaient pas d’accord.</p>
+        )}
+      </div>
+    </>
+  )
+}
+
 export default function Reveal({ uid, game }) {
   const { game: data, setOverride, nextQuestion, leaveGame, error, setError } = game
   const idx = data.currentIndex
@@ -41,7 +76,18 @@ export default function Reveal({ uid, game }) {
         </div>
       )}
 
-      {desc.kind === 'custom' ? (
+      {res.mode === 'trio' && (
+        <div className="scoreboard">
+          <div className="score-cell">
+            <span className="score-team">Score du trio</span>
+            <span className="score-pts">{res.teams[0].points}<span className="muted"> / {res.maxPoints}</span></span>
+          </div>
+        </div>
+      )}
+
+      {desc.kind === 'trio' ? (
+        <TrioReveal uid={uid} data={data} detail={detail} />
+      ) : desc.kind === 'custom' ? (
         <CustomReveal data={data} detail={detail} />
       ) : (
         <StandardReveal

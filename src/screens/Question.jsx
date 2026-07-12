@@ -1,6 +1,6 @@
 import { useState } from 'react'
-import { optionsFor, teamOfPlayer, playerName, TEAM_META } from '../lib/players.js'
-import { slotResponder } from '../lib/gameLogic.js'
+import { optionsFor, teamOfPlayer, playerName, playerUids, labelForValue, TEAM_META } from '../lib/players.js'
+import { slotResponder, trioGuessers } from '../lib/gameLogic.js'
 import { PACKS_BY_ID } from '../data/packs/index.js'
 
 export default function Question({ uid, game }) {
@@ -10,6 +10,9 @@ export default function Question({ uid, game }) {
 
   if (desc?.kind === 'custom') {
     return <CustomQuestion uid={uid} game={game} desc={desc} idx={idx} />
+  }
+  if (desc?.kind === 'trio') {
+    return <TrioGuessQuestion uid={uid} game={game} desc={desc} idx={idx} />
   }
   return <StandardQuestion uid={uid} game={game} desc={desc} idx={idx} />
 }
@@ -170,6 +173,96 @@ function CustomQuestion({ uid, game, desc, idx }) {
       {error && <p className="error">{error.message}</p>}
     </div>
   )
+}
+
+/* ---------- Manche trio (phase 2 : deviner la réponse de la cible) ---------- */
+function TrioGuessQuestion({ uid, game, desc, idx }) {
+  const { game: data, submitAnswer, leaveGame, error, setError } = game
+  const total = data.questions.length
+  const question = desc.q
+  const round = data.rounds?.[idx]
+  const target = desc.target
+  const isTarget = target === uid
+  const guessers = trioGuessers(playerUids(data), target)
+  const partnerUid = guessers.find((u) => u !== uid)
+
+  const myGuess = round?.guesses?.[uid]?.value
+  const partnerGuess = round?.guesses?.[partnerUid]?.value
+  const partnerSubmitted = Boolean(round?.guesses?.[partnerUid]?.submitted)
+
+  const isText = question.type === 'text'
+  const options = optionsFor(question, data)
+  const [choice, setChoice] = useState(isText ? '' : (myGuess ?? ''))
+  const [text, setText] = useState(isText ? (myGuess ?? '') : '')
+  const [busy, setBusy] = useState(false)
+  const canSubmit = isText ? text.trim().length > 0 : choice !== ''
+
+  async function handleSubmit() {
+    if (!canSubmit) return
+    setBusy(true)
+    setError(null)
+    try { await submitAnswer(isText ? text.trim() : choice) } catch (e) { setError(e) } finally { setBusy(false) }
+  }
+
+  return (
+    <div className="screen">
+      <Topbar leaveGame={leaveGame} idx={idx} total={total} />
+
+      <div className="card question-card">
+        <div className="q-pack">{isTarget ? 'On devine TA réponse' : `Devinez la réponse de ${playerName(data, target)}`}</div>
+        <h2 className="q-text">{question.text}</h2>
+      </div>
+
+      {isTarget ? (
+        <div className="waiting stack center">
+          <div className="spinner" />
+          <p>Ta réponse : <b>{labelForValue(question, data, round?.targetAnswer?.value)}</b></p>
+          <p className="muted">{othersNames(data, uid)} essaient de se mettre d’accord…</p>
+        </div>
+      ) : (
+        <div className="stack">
+          {isText ? (
+            <input
+              className="text-answer" autoFocus value={text} maxLength={60} placeholder="Votre réponse commune…"
+              onChange={(e) => setText(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && canSubmit && handleSubmit()}
+            />
+          ) : (
+            <div className="options">
+              {options.map((o) => (
+                <button key={o.id} className={'option' + (choice === o.id ? ' selected' : '')} onClick={() => setChoice(o.id)}>
+                  {o.label}
+                </button>
+              ))}
+            </div>
+          )}
+          <button className="btn btn-primary" disabled={!canSubmit || busy} onClick={handleSubmit}>
+            {busy ? 'Envoi…' : myGuess != null ? 'Modifier notre réponse' : 'Valider notre réponse'}
+          </button>
+
+          <div className="rattrapage-status">
+            <span className={myGuess != null ? 'ok' : ''}>
+              {myGuess != null ? '✅' : '⬜'} toi{myGuess != null ? ` : ${labelForValue(question, data, myGuess)}` : ''}
+            </span>
+            <span className={partnerSubmitted ? 'ok' : ''}>
+              {partnerSubmitted ? '✅' : '⬜'} {playerName(data, partnerUid)}{partnerSubmitted ? ` : ${labelForValue(question, data, partnerGuess)}` : ''}
+            </span>
+          </div>
+          {myGuess != null && partnerSubmitted && (
+            <p className="muted tiny center">Vous n’avez pas encore la même réponse — mettez-vous d’accord 🤝</p>
+          )}
+          <p className="muted tiny center">Il faut répondre <b>la même chose</b> tous les deux pour valider.</p>
+        </div>
+      )}
+
+      {error && <p className="error">{error.message}</p>}
+    </div>
+  )
+}
+
+function othersNames(data, uid) {
+  const others = playerUids(data).filter((u) => u !== uid)
+  return others.map((u) => playerName(data, u)).join(' et ')
 }
 
 function Waiting() {

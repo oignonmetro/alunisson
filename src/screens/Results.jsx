@@ -50,7 +50,24 @@ export default function Results({ uid, game }) {
       <div className="recap">
         <h3 className="section-title">Récapitulatif</h3>
         {res.details.map((d) => (
-          d.kind === 'custom' ? (
+          d.kind === 'trio' ? (
+            <div key={d.index} className="recap-row">
+              <div className="recap-q">{d.question.text}</div>
+              <div className="recap-teams">
+                <div className={'recap-team ' + (d.matched ? 'ok' : 'ko')}>
+                  <div className="recap-team-head">
+                    <span className="recap-mark">{d.matched ? '✅' : '❌'}</span>
+                    <span>Réponse de {playerName(data, d.target)}</span>
+                    <span className="recap-points">{d.matched ? `+${d.points}` : '+0'}</span>
+                  </div>
+                  <div className="recap-answers">
+                    <span className="recap-a"><b>{playerName(data, d.target)} :</b> {labelForValue(d.question, data, d.targetValue)}</span>
+                    <span className="recap-a"><b>Le duo :</b> {d.consensus != null ? labelForValue(d.question, data, d.consensus) : '— (pas d’accord)'}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          ) : d.kind === 'custom' ? (
             <div key={d.index} className="recap-row">
               <div className="recap-q">Manche spéciale — questions personnalisées (5 pts)</div>
               <div className="recap-teams">
