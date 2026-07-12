@@ -53,11 +53,12 @@ export function teamOfPlayer(game, uid) {
  */
 export function optionsFor(question, game, teamUids) {
   if (question?.type === 'who') {
-    // En trio, la question porte toujours sur les 3 joueurs (« qui de nous trois »).
+    // En trio, la question porte sur les 3 joueurs et se répond en sélection
+    // multiple : on choisit un ou plusieurs joueurs, ou « Aucun des trois »
+    // (pas de raccourci « Les trois » : on coche simplement les 3).
     if (isTrio(game)) {
       return [
         ...playerUids(game).map((u) => ({ id: u, label: playerName(game, u) })),
-        { id: 'both', label: 'Les trois' },
         { id: 'neither', label: 'Aucun des trois' },
       ]
     }
@@ -71,13 +72,50 @@ export function optionsFor(question, game, teamUids) {
   return question?.options || []
 }
 
+/**
+ * Applique un clic sur une option « qui de nous trois » (sélection multiple).
+ * « Aucun des trois » (neither) est exclusif : le cocher vide les autres, et
+ * cocher un joueur retire « Aucun ».
+ * @param {string[]} picks  sélection courante (uids et/ou 'neither')
+ * @param {string} id  option cliquée
+ * @returns {string[]}
+ */
+export function toggleWhoPick(picks, id) {
+  const current = picks || []
+  if (id === 'neither') {
+    return current.includes('neither') ? [] : ['neither']
+  }
+  const base = current.filter((p) => p !== 'neither')
+  return base.includes(id) ? base.filter((p) => p !== id) : [...base, id]
+}
+
+/** Convertit une sélection (uids et/ou 'neither') en valeur stockable. */
+export function whoPicksToValue(picks) {
+  const current = picks || []
+  if (current.includes('neither')) return 'neither'
+  return [...current]
+}
+
+/** Convertit une valeur stockée en sélection UI (tableau d'ids). */
+export function whoValueToPicks(value) {
+  if (value == null) return []
+  if (value === 'neither') return ['neither']
+  return Array.isArray(value) ? [...value] : [value]
+}
+
 /** Libellé lisible d'une valeur de réponse pour une question donnée. */
 export function labelForValue(question, game, value) {
   if (value == null || value === '') return '—'
   if (question?.type === 'text') return String(value)
   if (question?.type === 'who') {
-    if (value === 'both') return isTrio(game) ? 'Les trois' : 'Les deux'
-    if (value === 'neither') return isTrio(game) ? 'Aucun des trois' : 'Aucun des deux'
+    if (isTrio(game)) {
+      if (value === 'neither') return 'Aucun des trois'
+      const arr = Array.isArray(value) ? value : [value]
+      if (arr.length === 0) return 'Aucun des trois'
+      return arr.map((u) => playerName(game, u)).join(', ')
+    }
+    if (value === 'both') return 'Les deux'
+    if (value === 'neither') return 'Aucun des deux'
     return playerName(game, value)
   }
   const opt = (question?.options || []).find((o) => o.id === value)

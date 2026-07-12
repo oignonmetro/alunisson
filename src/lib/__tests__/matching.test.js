@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { normalize, isMatch, isPartialMatch } from '../matching.js'
+import { normalize, isMatch, isPartialMatch, sameSet } from '../matching.js'
 
 describe('normalize', () => {
   it('supprime accents, casse et ponctuation', () => {
@@ -28,6 +28,33 @@ describe('isMatch - mcq', () => {
   })
   it('faux si une réponse manque', () => {
     expect(isMatch(q, 'a', null)).toBe(false)
+  })
+})
+
+describe('sameSet', () => {
+  it('égalité d’ensembles indépendante de l’ordre', () => {
+    expect(sameSet(['A', 'B'], ['B', 'A'])).toBe(true)
+    expect(sameSet(['A'], ['A'])).toBe(true)
+  })
+  it('faux si tailles ou éléments diffèrent', () => {
+    expect(sameSet(['A', 'B'], ['A'])).toBe(false)
+    expect(sameSet(['A'], ['B'])).toBe(false)
+  })
+  it('« neither » (non-tableau) ne coïncide qu’avec « neither »', () => {
+    expect(sameSet('neither', 'neither')).toBe(true)
+    expect(sameSet(['A'], 'neither')).toBe(false)
+  })
+})
+
+describe('isMatch - who (sélection multiple, trio)', () => {
+  const q = { type: 'who' }
+  it('coïncidence d’ensembles quelle que soit la position', () => {
+    expect(isMatch(q, ['A', 'B'], ['B', 'A'])).toBe(true)
+    expect(isMatch(q, ['A'], ['A'])).toBe(true)
+  })
+  it('pas de coïncidence si sélections différentes', () => {
+    expect(isMatch(q, ['A', 'B'], ['A'])).toBe(false)
+    expect(isMatch(q, ['A'], 'neither')).toBe(false)
   })
 })
 

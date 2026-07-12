@@ -36,6 +36,9 @@ export function isMatch(question, a, b) {
   if (a == null || b == null) return false
   // Toute question à choix (mcq, who, …) se compare par id d'option.
   if (question?.type !== 'text') {
+    // Sélection multiple (« qui de nous trois » en mode trio) : comparaison
+    // d'ensembles, indépendante de l'ordre.
+    if (Array.isArray(a) || Array.isArray(b)) return sameSet(a, b)
     return String(a) === String(b)
   }
   // Réponse libre : comparaison normalisée.
@@ -43,6 +46,22 @@ export function isMatch(question, a, b) {
   const nb = normalize(b)
   if (na === '' || nb === '') return false
   return na === nb
+}
+
+/**
+ * Égalité de deux sélections (tableaux d'ids), indépendante de l'ordre.
+ * Une valeur non-tableau (ex. 'neither') est traitée comme un singleton, si
+ * bien que 'neither' ne coïncide qu'avec 'neither'.
+ * @param {*} a
+ * @param {*} b
+ * @returns {boolean}
+ */
+export function sameSet(a, b) {
+  const na = Array.isArray(a) ? a : [a]
+  const nb = Array.isArray(b) ? b : [b]
+  if (na.length !== nb.length) return false
+  const sb = new Set(nb.map(String))
+  return na.every((x) => sb.has(String(x)))
 }
 
 /**

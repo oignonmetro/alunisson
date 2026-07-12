@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { optionsFor, teamOfPlayer, playerName, playerUids, labelForValue, TEAM_META } from '../lib/players.js'
+import { optionsFor, teamOfPlayer, playerName, playerUids, labelForValue, toggleWhoPick, whoPicksToValue, whoValueToPicks, TEAM_META } from '../lib/players.js'
 import { slotResponder, trioGuessers } from '../lib/gameLogic.js'
 import { PACKS_BY_ID } from '../data/packs/index.js'
 
@@ -191,17 +191,22 @@ function TrioGuessQuestion({ uid, game, desc, idx }) {
   const partnerSubmitted = Boolean(round?.guesses?.[partnerUid]?.submitted)
 
   const isText = question.type === 'text'
+  const isWho = question.type === 'who'
   const options = optionsFor(question, data)
-  const [choice, setChoice] = useState(isText ? '' : (myGuess ?? ''))
+  const [choice, setChoice] = useState(isText || isWho ? '' : (myGuess ?? ''))
+  const [picks, setPicks] = useState(isWho ? whoValueToPicks(myGuess) : [])
   const [text, setText] = useState(isText ? (myGuess ?? '') : '')
   const [busy, setBusy] = useState(false)
-  const canSubmit = isText ? text.trim().length > 0 : choice !== ''
+  const canSubmit = isText ? text.trim().length > 0 : isWho ? picks.length > 0 : choice !== ''
 
   async function handleSubmit() {
     if (!canSubmit) return
     setBusy(true)
     setError(null)
-    try { await submitAnswer(isText ? text.trim() : choice) } catch (e) { setError(e) } finally { setBusy(false) }
+    try {
+      const value = isText ? text.trim() : isWho ? whoPicksToValue(picks) : choice
+      await submitAnswer(value)
+    } catch (e) { setError(e) } finally { setBusy(false) }
   }
 
   return (
@@ -227,6 +232,14 @@ function TrioGuessQuestion({ uid, game, desc, idx }) {
               onChange={(e) => setText(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && canSubmit && handleSubmit()}
             />
+          ) : isWho ? (
+            <div className="options">
+              {options.map((o) => (
+                <button key={o.id} className={'option' + (picks.includes(o.id) ? ' selected' : '')} onClick={() => setPicks((p) => toggleWhoPick(p, o.id))}>
+                  {o.label}
+                </button>
+              ))}
+            </div>
           ) : (
             <div className="options">
               {options.map((o) => (
@@ -236,6 +249,7 @@ function TrioGuessQuestion({ uid, game, desc, idx }) {
               ))}
             </div>
           )}
+          {isWho && <p className="muted tiny center">Vous pouvez en choisir plusieurs.</p>}
           <button className="btn btn-primary" disabled={!canSubmit || busy} onClick={handleSubmit}>
             {busy ? 'Envoi…' : myGuess != null ? 'Modifier notre réponse' : 'Valider notre réponse'}
           </button>
