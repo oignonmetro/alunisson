@@ -7,6 +7,9 @@ import { isMatch, isPartialMatch } from './matching.js'
 /** Nombre de questions posées à chaque partie (fixe). */
 export const QUESTIONS_PER_GAME = 7
 
+/** Mode trio (3 joueurs) : 9 questions, 3 par joueur (chacun est « cible » 3 fois). */
+export const TRIO_QUESTIONS = 9
+
 /** Mode équipes : nombre de manches communes (packs) et de manches perso. */
 export const TEAMS_STANDARD_ROUNDS = 5
 export const TEAMS_CUSTOM_ROUNDS = 2
@@ -90,6 +93,56 @@ export function buildTeamsSequence(packs, packsById, customPrompts, teams, rng =
 }
 
 /**
+ * Les deux joueurs qui doivent deviner la réponse de la cible (mode trio).
+ * @param {string[]} uids  les 3 joueurs
+ * @param {string} target  la cible (le joueur dont on devine la réponse)
+ * @returns {string[]}  les 2 autres joueurs
+ */
+export function trioGuessers(uids, target) {
+  return (uids || []).filter((u) => u !== target)
+}
+
+/**
+ * Construit la séquence de 9 manches du mode trio : chaque joueur est la
+ * « cible » de 3 questions (il y répond seul en phase 1), les deux autres
+ * devineront sa réponse en phase 2.
+ * @param {string[]} packs
+ * @param {Record<string, {questions:any[]}>} packsById
+ * @param {string[]} uids  les 3 joueurs
+ * @param {() => number} [rng]
+ * @returns {{kind:'trio', q:any, target:string}[]}
+ */
+export function buildTrioSequence(packs, packsById, uids, rng = Math.random) {
+  const qs = buildQuestions(packs, TRIO_QUESTIONS, packsById, rng)
+  // 3 questions par joueur : on répartit les cibles puis on mélange l'ordre.
+  const targets = []
+  for (const u of uids || []) {
+    for (let k = 0; k < 3; k++) targets.push(u)
+  }
+  const shuffledTargets = shuffle(targets, rng)
+  const rounds = qs.map((q, i) => ({ kind: 'trio', q, target: shuffledTargets[i % shuffledTargets.length] }))
+  return shuffle(rounds, rng)
+}
+
+/**
+ * Consensus des deux devineurs (mode trio) : la réponse commune n'est
+ * validée que lorsque les deux ont soumis ET que leurs réponses coïncident.
+ * @param {{type: string}} question
+ * @param {Record<string, {value:any, submitted?:boolean}>} guesses
+ * @param {string[]} guesserUids  les 2 devineurs
+ * @returns {{reached: boolean, value: any}}
+ */
+export function computeTrioConsensus(question, guesses, guesserUids) {
+  if (!guesses || !guesserUids || guesserUids.length < 2) return { reached: false, value: null }
+  const [g1, g2] = guesserUids
+  const a = guesses[g1]
+  const b = guesses[g2]
+  if (!a?.submitted || !b?.submitted) return { reached: false, value: null }
+  if (!isMatch(question, a.value, b.value)) return { reached: false, value: null }
+  return { reached: true, value: a.value }
+}
+
+/**
  * Équipe qui répond à un slot d'une manche perso : la cible, ou l'adversaire
  * si la question a été retournée. Renvoie null tant que la décision n'est pas prise.
  * @param {{returned?: boolean|null}} slotState  état du slot dans la manche
@@ -115,17 +168,21 @@ export function orderedUids(game) {
 
 /**
  * Mode de la partie déduit de sa configuration ou du nombre de joueurs.
+ * 2 joueurs = couple, 3 = trio, 4 = équipes.
  * @param {any} game
- * @returns {'couple'|'teams'}
+ * @returns {'couple'|'trio'|'teams'}
  */
 export function gameMode(game) {
   if (game?.config?.mode) return game.config.mode
-  return orderedUids(game).length > 2 ? 'teams' : 'couple'
+  const n = orderedUids(game).length
+  if (n === 3) return 'trio'
+  return n > 3 ? 'teams' : 'couple'
 }
 
 /**
  * Équipes de la partie (logique pure, sans métadonnées d'affichage).
  * - mode couple : une seule équipe implicite `duo` = les deux joueurs.
+ * - mode trio : une seule équipe implicite `trio` = les trois joueurs (score commun).
  * - mode équipes : deux équipes `A` et `B`, chacune = joueurs ayant choisi ce camp.
  * @param {any} game
  * @returns {{id: string, uids: string[]}[]}
@@ -133,11 +190,15 @@ export function gameMode(game) {
 export function gameTeams(game) {
   const players = game?.players || {}
   const uids = orderedUids(game)
-  if (gameMode(game) === 'teams') {
+  const mode = gameMode(game)
+  if (mode === 'teams') {
     return ['A', 'B'].map((id) => ({
       id,
       uids: uids.filter((u) => players[u].team === id),
     }))
+  }
+  if (mode === 'trio') {
+    return [{ id: 'trio', uids }]
   }
   return [{ id: 'duo', uids }]
 }
@@ -253,6 +314,26 @@ export function computeResults(game) {
         slots[key] = { desc: desc.slots[key], target: key, returned: s.returned ?? null, responder, matched, answers: s.answers || {}, points: earned }
       }
       return { index: i, kind: 'custom', slots }
+    }
+
+    if (desc.kind === 'trio') {
+      const q = desc.q
+      const qp = pointsForQuestion(q)
+      maxPoints += qp
+      const ti = idxOf.trio
+      const guessers = trioGuessers(orderedUids(game), desc.target)
+      const consensus = computeTrioConsensus(q, round.guesses || {}, guessers)
+      const targetValue = round.targetAnswer?.value
+      const matched = consensus.reached && isMatch(q, consensus.value, targetValue)
+      if (matched && ti != null) {
+        agg[ti].points += qp
+        agg[ti].matchCount += 1
+      }
+      return {
+        index: i, kind: 'trio', question: q, target: desc.target,
+        targetValue, consensus: consensus.reached ? consensus.value : null,
+        guesses: round.guesses || {}, guessers, matched, points: matched ? qp : 0,
+      }
     }
 
     // Manche standard (packs)

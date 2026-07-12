@@ -10,13 +10,16 @@ export default function Lobby({ uid, game }) {
 
   const uids = playerUids(data)
   const n = uids.length
-  const teamsMode = n > 2 // au-delà de 2 joueurs, on part sur le mode équipes
+  const teamsMode = n === 4 // le choix d'équipe ne concerne que le mode à 4
   const countA = uids.filter((u) => data.players[u].team === 'A').length
   const countB = uids.filter((u) => data.players[u].team === 'B').length
   const myTeam = data.players[uid]?.team
   const balanced = countA === 2 && countB === 2
-  const canStart = n === 2 || (n === 4 && balanced)
   const available = buildQuestions(packs, 999, PACKS_BY_ID).length
+  const needed = n === 3 ? 9 : 7
+  // En trio, il faut 9 questions (3 par joueur) pour un déroulé équilibré.
+  const enoughForTrio = n !== 3 || available >= 9
+  const canStart = (n === 2 || n === 3 || (n === 4 && balanced)) && enoughForTrio
 
   function togglePack(id) {
     setPacks((prev) => (prev.includes(id) ? prev.filter((p) => p !== id) : [...prev, id]))
@@ -52,7 +55,8 @@ export default function Lobby({ uid, game }) {
   let startLabel = 'Démarrer la partie'
   if (busy) startLabel = 'Lancement…'
   else if (n < 2) startLabel = 'En attente de joueurs…'
-  else if (n === 3) startLabel = 'Il faut être 2 ou 4 joueurs'
+  else if (n === 3 && !enoughForTrio) startLabel = `Ajoute des packs (9 questions requises)`
+  else if (n === 3) startLabel = 'Démarrer (mode à 3)'
   else if (n === 4 && !balanced) startLabel = 'Formez 2 équipes de 2'
   else if (n === 4) startLabel = 'Démarrer (2 équipes)'
 
@@ -129,8 +133,8 @@ export default function Lobby({ uid, game }) {
             ))}
           </div>
 
-          {available > 0 && available < 7 && (
-            <p className="muted tiny">Seulement {available} questions dans les packs choisis — la partie en aura {available} (au lieu de 7).</p>
+          {available > 0 && available < needed && (
+            <p className="muted tiny">Seulement {available} questions dans les packs choisis — il en faut {needed} pour ce mode. Ajoute un pack.</p>
           )}
 
           <button

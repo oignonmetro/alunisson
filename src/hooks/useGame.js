@@ -22,13 +22,18 @@ import { generateCode } from '../lib/gameCode.js'
 import {
   buildQuestions,
   buildTeamsSequence,
+  buildTrioSequence,
   computeAutoMatch,
   computePartialMatch,
+  computeTrioConsensus,
+  trioGuessers,
   allAnswered,
   gameTeams,
+  orderedUids,
   slotResponder,
   QUESTIONS_PER_GAME,
 } from '../lib/gameLogic.js'
+import { isMatch } from '../lib/matching.js'
 import { PACKS_BY_ID } from '../data/packs/index.js'
 
 const gameDoc = (code) => doc(db, 'games', code)
@@ -183,12 +188,26 @@ export function useGame(uid) {
         if (data.hostUid !== uid) throw new Error('Seul l’hôte peut lancer la partie.')
         const players = data.players || {}
         const n = Object.keys(players).length
-        if (n !== 2 && n !== 4) throw new Error('Il faut être 2 (couple) ou 4 (équipes) pour jouer.')
-        const mode = n === 4 ? 'teams' : 'couple'
+        if (n < 2 || n > 4) throw new Error('Il faut être 2 (couple), 3 (trio) ou 4 (équipes) pour jouer.')
+        const mode = n === 4 ? 'teams' : n === 3 ? 'trio' : 'couple'
         if (mode === 'teams') {
           const a = Object.keys(players).filter((u) => players[u].team === 'A').length
           const b = Object.keys(players).filter((u) => players[u].team === 'B').length
           if (a !== 2 || b !== 2) throw new Error('Répartissez-vous en 2 équipes de 2.')
+        }
+        if (mode === 'trio') {
+          // Le mode trio passe d'abord par la phase 1 : chaque joueur répond
+          // seul à ses 3 questions (la séquence est construite maintenant).
+          const questions = buildTrioSequence(packs, PACKS_BY_ID, orderedUids(data))
+          if (questions.length === 0) throw new Error('Choisissez au moins un pack de questions.')
+          tx.update(ref, {
+            status: 'answering',
+            config: { packs, mode, playerCount: n },
+            questions,
+            currentIndex: 0,
+            rounds: {},
+          })
+          return
         }
         if (mode === 'teams') {
           // Le mode équipes passe d'abord par la phase de rédaction des
@@ -269,10 +288,42 @@ export function useGame(uid) {
     [code, uid],
   )
 
+  // Phase 1 du mode trio : le joueur-cible répond seul à l'une de SES questions
+  // (indexée par idx). Quand les 9 réponses-cibles sont soumises, on passe à la
+  // phase 2 (devinettes) en basculant le statut sur 'playing'.
+  const submitTargetAnswer = useCallback(
+    async (idx, value) => {
+      await runTransaction(db, async (tx) => {
+        const ref = gameDoc(code)
+        const snap = await tx.get(ref)
+        if (!snap.exists()) throw new Error('Partie introuvable.')
+        const data = snap.data()
+        if (data.status !== 'answering') return
+        const desc = data.questions?.[idx]
+        if (desc?.kind !== 'trio' || desc.target !== uid) return // seule la cible répond
+        const rounds = data.rounds || {}
+        const round = { kind: 'trio', guesses: {}, revealed: false, ...(rounds[idx] || {}) }
+        if (round.targetAnswer?.submitted) return // déjà répondu
+        round.targetAnswer = { value, submitted: true }
+        const allAnswered = data.questions.every((d, i) =>
+          i === idx ? true : rounds[i]?.targetAnswer?.submitted === true,
+        )
+        const update = { [`rounds.${idx}`]: round }
+        if (allAnswered) {
+          update.status = 'playing'
+          update.currentIndex = 0
+        }
+        tx.update(ref, update)
+      })
+    },
+    [code, uid],
+  )
+
   // Soumet la réponse du joueur pour la manche courante.
   //  - manche standard : tous répondent, révélation + match par équipe.
   //  - manche perso : on répond un slot précis ; révélation quand les deux
   //    slots sont décidés et que leurs équipes-répondantes ont soumis.
+  //  - manche trio : les 2 devineurs proposent ; révélation au consensus.
   const submitAnswer = useCallback(
     async (value, slotKey) => {
       await runTransaction(db, async (tx) => {
@@ -283,6 +334,23 @@ export function useGame(uid) {
         const idx = data.currentIndex
         const desc = data.questions?.[idx]
         const teams = gameTeams(data)
+
+        if (desc?.kind === 'trio') {
+          if (desc.target === uid) return // la cible ne devine pas sa propre réponse
+          const guessers = trioGuessers(orderedUids(data), desc.target)
+          if (!guessers.includes(uid)) return
+          const rounds = data.rounds || {}
+          const round = { kind: 'trio', guesses: {}, revealed: false, ...(rounds[idx] || {}) }
+          round.guesses = { ...round.guesses, [uid]: { value, submitted: true } }
+          const consensus = computeTrioConsensus(desc.q, round.guesses, guessers)
+          if (consensus.reached) {
+            round.revealed = true
+            round.consensus = consensus.value
+            round.matched = isMatch(desc.q, consensus.value, round.targetAnswer?.value)
+          }
+          tx.update(ref, { [`rounds.${idx}`]: round })
+          return
+        }
 
         if (desc?.kind === 'custom') {
           const round = normalizeCustomRound(data.rounds?.[idx])
@@ -387,6 +455,7 @@ export function useGame(uid) {
     setTeam,
     startGame,
     submitPrompt,
+    submitTargetAnswer,
     decideSlot,
     submitAnswer,
     setOverride,

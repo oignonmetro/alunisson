@@ -2,11 +2,17 @@
 
 import { orderedUids, gameTeams, gameMode } from './gameLogic.js'
 
+/** Vrai si la partie est (ou sera) en mode trio (3 joueurs). */
+function isTrio(game) {
+  return gameMode(game) === 'trio'
+}
+
 /** Métadonnées d'affichage des équipes (mode 4 joueurs). */
 export const TEAM_META = {
   A: { name: 'Équipe A', color: '#ff5e8a' },
   B: { name: 'Équipe B', color: '#a678ff' },
   duo: { name: 'Vous deux', color: '#ff5e8a' },
+  trio: { name: 'Le trio', color: '#ff5e8a' },
 }
 
 /** Liste des uid des joueurs (ordre d'arrivée). */
@@ -47,6 +53,14 @@ export function teamOfPlayer(game, uid) {
  */
 export function optionsFor(question, game, teamUids) {
   if (question?.type === 'who') {
+    // En trio, la question porte toujours sur les 3 joueurs (« qui de nous trois »).
+    if (isTrio(game)) {
+      return [
+        ...playerUids(game).map((u) => ({ id: u, label: playerName(game, u) })),
+        { id: 'both', label: 'Les trois' },
+        { id: 'neither', label: 'Aucun des trois' },
+      ]
+    }
     const uids = teamUids && teamUids.length ? teamUids : playerUids(game)
     return [
       ...uids.map((u) => ({ id: u, label: playerName(game, u) })),
@@ -62,8 +76,8 @@ export function labelForValue(question, game, value) {
   if (value == null || value === '') return '—'
   if (question?.type === 'text') return String(value)
   if (question?.type === 'who') {
-    if (value === 'both') return 'Les deux'
-    if (value === 'neither') return 'Aucun des deux'
+    if (value === 'both') return isTrio(game) ? 'Les trois' : 'Les deux'
+    if (value === 'neither') return isTrio(game) ? 'Aucun des trois' : 'Aucun des deux'
     return playerName(game, value)
   }
   const opt = (question?.options || []).find((o) => o.id === value)
