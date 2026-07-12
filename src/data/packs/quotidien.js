@@ -1,4 +1,9 @@
 // Pack « Vie quotidienne » — habitudes, petites manies, répartition des rôles.
+//
+// `audience: 'all'` marque les questions neutres/inclusives, jouables aussi
+// entre amis (traits de personnalité, habitudes de sommeil, trajets…). Les
+// questions sans ce champ restent réservées au mode « En couple » (logistique
+// du foyer partagé, disputes, « l'autre »…).
 
 export default {
   id: 'quotidien',
@@ -8,21 +13,25 @@ export default {
   questions: [
     {
       id: 'leve-tot',
+      audience: 'all',
       type: 'who',
       text: 'Qui se lève le plus tôt ?',
     },
     {
       id: 'bordelique',
+      audience: 'all',
       type: 'who',
       text: 'Qui est le plus bordélique ?',
     },
     {
       id: 'cuisine',
+      audience: 'all',
       type: 'who',
       text: 'Qui cuisine le plus souvent ?',
     },
     {
       id: 'telecommande',
+      audience: 'all',
       type: 'who',
       text: 'Qui contrôle la télécommande ?',
     },
@@ -39,11 +48,13 @@ export default {
     },
     {
       id: 'oublis',
+      audience: 'all',
       type: 'who',
       text: 'Qui oublie le plus souvent ses clés ou son téléphone ?',
     },
     {
       id: 'film-soir',
+      audience: 'all',
       type: 'who',
       text: 'Qui décide du film le soir ?',
     },
@@ -60,11 +71,13 @@ export default {
     },
     {
       id: 'depensier',
+      audience: 'all',
       type: 'who',
       text: 'Qui est le plus dépensier ?',
     },
     {
       id: 'messages',
+      audience: 'all',
       type: 'who',
       text: 'Qui répond le plus vite aux messages ?',
     },
@@ -75,6 +88,7 @@ export default {
     },
     {
       id: 'volant',
+      audience: 'all',
       type: 'who',
       text: 'Qui prend le volant pour les longs trajets ?',
     },
@@ -85,16 +99,19 @@ export default {
     },
     {
       id: 'reveil-difficile',
+      audience: 'all',
       type: 'who',
       text: 'Qui a le plus de mal à sortir du lit ?',
     },
     {
       id: 'ronfle',
+      audience: 'all',
       type: 'who',
       text: 'Qui ronfle (un peu) ?',
     },
     {
       id: 'couverture',
+      audience: 'all',
       type: 'who',
       text: 'Qui vole la couverture la nuit ?',
     },
@@ -105,6 +122,7 @@ export default {
     },
     {
       id: 'retard',
+      audience: 'all',
       type: 'who',
       text: 'Qui est le plus souvent en retard ?',
     },
@@ -120,11 +138,13 @@ export default {
     },
     {
       id: 'snooze',
+      audience: 'all',
       type: 'who',
       text: 'Qui appuie dix fois sur « snooze » ?',
     },
     {
       id: 'douche-longue',
+      audience: 'all',
       type: 'who',
       text: 'Qui prend les douches les plus longues ?',
     },
@@ -151,6 +171,7 @@ export default {
     },
     {
       id: 'temps-telephone',
+      audience: 'all',
       type: 'who',
       text: 'Qui passe le plus de temps sur son téléphone ?',
     },
@@ -167,6 +188,7 @@ export default {
     },
     {
       id: 'met-reveil',
+      audience: 'all',
       type: 'who',
       text: 'Qui met le réveil le matin ?',
     },
@@ -177,21 +199,25 @@ export default {
     },
     {
       id: 'gps',
+      audience: 'all',
       type: 'who',
       text: 'Qui se fie le plus au GPS ?',
     },
     {
       id: 'fait-lit',
+      audience: 'all',
       type: 'who',
       text: 'Qui fait le lit le matin ?',
     },
     {
       id: 'impatient',
+      audience: 'all',
       type: 'who',
       text: 'Qui est le plus impatient ?',
     },
     {
       id: 'rate-recette',
+      audience: 'all',
       type: 'who',
       text: 'Qui rate le plus souvent une recette ?',
     },
@@ -202,11 +228,13 @@ export default {
     },
     {
       id: 'bricole',
+      audience: 'all',
       type: 'who',
       text: 'Qui bricole quand quelque chose casse ?',
     },
     {
       id: 'humeur-matin',
+      audience: 'all',
       type: 'who',
       text: 'Qui est de meilleure humeur le matin ?',
     },
@@ -217,21 +245,25 @@ export default {
     },
     {
       id: 'endort-tele',
+      audience: 'all',
       type: 'who',
       text: 'Qui s’endort devant la télé ?',
     },
     {
       id: 'organise-weekend',
+      audience: 'all',
       type: 'who',
       text: 'Qui organise le planning du week-end ?',
     },
     {
       id: 'salle-de-bain',
+      audience: 'all',
       type: 'who',
       text: 'Qui passe le plus de temps dans la salle de bain ?',
     },
     {
       id: 'prepare-petit-dej',
+      audience: 'all',
       type: 'who',
       text: 'Qui prépare le café ou le petit-déj ?',
     },
@@ -252,6 +284,7 @@ export default {
     },
     {
       id: 'lever-weekend',
+      audience: 'all',
       type: 'mcq',
       text: 'Le week-end, on se lève…',
       options: [
@@ -268,6 +301,7 @@ export default {
     },
     {
       id: 'musique-voiture',
+      audience: 'all',
       type: 'who',
       text: 'Qui choisit la musique en voiture ?',
     },

@@ -1,5 +1,9 @@
 // Pack « Goûts & préférences » — surtout des QCM légers.
 // Types : mcq (options fixes), who (qui de nous deux), text (réponse libre).
+//
+// `audience: 'all'` marque les questions à formulation neutre, jouables aussi
+// bien entre amis qu'en couple. Les questions dites « à deux / notre / nos »
+// (sans ce champ) restent réservées au mode « En couple ».
 
 export default {
   id: 'gouts',
@@ -20,6 +24,7 @@ export default {
     },
     {
       id: 'plage-montagne',
+      audience: 'all',
       type: 'mcq',
       text: 'Pour s’évader, on choisit…',
       options: [
@@ -56,6 +61,7 @@ export default {
     },
     {
       id: 'serie',
+      audience: 'all',
       type: 'mcq',
       text: 'On regarde une série…',
       options: [
@@ -83,6 +89,7 @@ export default {
     },
     {
       id: 'dimanche',
+      audience: 'all',
       type: 'mcq',
       text: 'Un dimanche parfait, c’est…',
       options: [
@@ -94,6 +101,7 @@ export default {
     },
     {
       id: 'valise',
+      audience: 'all',
       type: 'who',
       text: 'Qui boucle sa valise à la dernière minute ?',
     },
@@ -110,6 +118,7 @@ export default {
     },
     {
       id: 'petit-dej',
+      audience: 'all',
       type: 'mcq',
       text: 'Au petit-déj, on est plutôt…',
       options: [
@@ -137,6 +146,7 @@ export default {
     },
     {
       id: 'cafe',
+      audience: 'all',
       type: 'mcq',
       text: 'Le café, c’est plutôt…',
       options: [
@@ -158,6 +168,7 @@ export default {
     },
     {
       id: 'film-genre',
+      audience: 'all',
       type: 'mcq',
       text: 'Le genre de film qu’on choisit ?',
       options: [
@@ -169,6 +180,7 @@ export default {
     },
     {
       id: 'musique-style',
+      audience: 'all',
       type: 'mcq',
       text: 'On met plutôt…',
       options: [
@@ -180,6 +192,7 @@ export default {
     },
     {
       id: 'animal-prefere',
+      audience: 'all',
       type: 'mcq',
       text: 'Team…',
       options: [
@@ -213,6 +226,7 @@ export default {
     },
     {
       id: 'jeu-soiree',
+      audience: 'all',
       type: 'mcq',
       text: 'Pour une soirée jeux ?',
       options: [
@@ -224,16 +238,19 @@ export default {
     },
     {
       id: 'propose-sortie',
+      audience: 'all',
       type: 'who',
       text: 'Qui propose le plus souvent une sortie le week-end ?',
     },
     {
       id: 'gourmand',
+      audience: 'all',
       type: 'who',
       text: 'Qui est le plus gourmand ?',
     },
     {
       id: 'fromage-dessert',
+      audience: 'all',
       type: 'mcq',
       text: 'À la fin du repas ?',
       options: [
@@ -245,6 +262,7 @@ export default {
     },
     {
       id: 'boisson-matin',
+      audience: 'all',
       type: 'mcq',
       text: 'Le matin, on carbure au…',
       options: [
@@ -256,6 +274,7 @@ export default {
     },
     {
       id: 'plat-reconfort',
+      audience: 'all',
       type: 'text',
       text: 'Le plat réconfort quand ça ne va pas fort ?',
     },
@@ -266,6 +285,7 @@ export default {
     },
     {
       id: 'epice-doux',
+      audience: 'all',
       type: 'mcq',
       text: 'Côté cuisine, on aime…',
       options: [
@@ -277,6 +297,7 @@ export default {
     },
     {
       id: 'sortie-soir',
+      audience: 'all',
       type: 'mcq',
       text: 'Pour sortir le soir ?',
       options: [
@@ -288,6 +309,7 @@ export default {
     },
     {
       id: 'type-cadeau',
+      audience: 'all',
       type: 'mcq',
       text: 'Le cadeau qui fait plaisir ?',
       options: [
@@ -299,6 +321,7 @@ export default {
     },
     {
       id: 'matin-soir',
+      audience: 'all',
       type: 'mcq',
       text: 'On est plutôt…',
       options: [
@@ -310,6 +333,7 @@ export default {
     },
     {
       id: 'serie-boucle',
+      audience: 'all',
       type: 'text',
       text: 'La série qu’on regarderait en boucle ?',
     },
@@ -326,6 +350,7 @@ export default {
     },
     {
       id: 'jour-pluie',
+      audience: 'all',
       type: 'mcq',
       text: 'Un jour de pluie, on…',
       options: [
@@ -337,6 +362,7 @@ export default {
     },
     {
       id: 'gout-choco',
+      audience: 'all',
       type: 'mcq',
       text: 'Le chocolat, on l’aime…',
       options: [
@@ -353,6 +379,7 @@ export default {
     },
     {
       id: 'apero',
+      audience: 'all',
       type: 'mcq',
       text: 'L’apéro parfait ?',
       options: [
@@ -364,11 +391,13 @@ export default {
     },
     {
       id: 'sorties-culturelles',
+      audience: 'all',
       type: 'who',
       text: 'Qui propose le plus les sorties culturelles ?',
     },
     {
       id: 'mode-voyage',
+      audience: 'all',
       type: 'mcq',
       text: 'Pour voyager, on préfère…',
       options: [
@@ -380,6 +409,7 @@ export default {
     },
     {
       id: 'weekend-projet',
+      audience: 'all',
       type: 'mcq',
       text: 'Le week-end projet, c’est…',
       options: [
@@ -396,11 +426,13 @@ export default {
     },
     {
       id: 'petit-plaisir',
+      audience: 'all',
       type: 'text',
       text: 'Le petit plaisir qu’on s’offre le week-end ?',
     },
     {
       id: 'lever-vacances',
+      audience: 'all',
       type: 'mcq',
       text: 'En vacances, on se lève…',
       options: [
@@ -412,6 +444,7 @@ export default {
     },
     {
       id: 'baignade',
+      audience: 'all',
       type: 'mcq',
       text: 'On préfère se baigner…',
       options: [
@@ -423,16 +456,19 @@ export default {
     },
     {
       id: 'photo-sortie',
+      audience: 'all',
       type: 'who',
       text: 'Qui insiste pour immortaliser chaque sortie ?',
     },
     {
       id: 'nouveau-resto',
+      audience: 'all',
       type: 'who',
       text: 'Qui propose d’essayer un nouveau resto ?',
     },
     {
       id: 'dessert-maison',
+      audience: 'all',
       type: 'text',
       text: 'Le dessert maison qu’on adore (faire ou manger) ?',
     },
@@ -443,6 +479,7 @@ export default {
     },
     {
       id: 'ou-voir-film',
+      audience: 'all',
       type: 'mcq',
       text: 'Un film, on le regarde…',
       options: [
@@ -454,6 +491,7 @@ export default {
     },
     {
       id: 'boisson-cocooning',
+      audience: 'all',
       type: 'mcq',
       text: 'La boisson chaude cocooning ?',
       options: [

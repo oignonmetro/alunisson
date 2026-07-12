@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import {
   buildQuestions,
+  questionAllowed,
   computeAutoMatch,
   computePartialMatch,
   computeTrioConsensus,
@@ -21,6 +22,40 @@ const packsById = {
   p1: { questions: [ { id: 'q1', type: 'text', text: 'A' }, { id: 'q2', type: 'text', text: 'B' } ] },
   p2: { questions: [ { id: 'q1', type: 'mcq', text: 'C', options: [] }, { id: 'q3', type: 'text', text: 'D' } ] },
 }
+
+// Pack avec un mélange de questions « amis » (audience:'all') et couple.
+const mixedPacks = {
+  mix: { questions: [
+    { id: 'a1', type: 'mcq', text: 'ami 1', audience: 'all', options: [] },
+    { id: 'c1', type: 'text', text: 'couple 1' },
+    { id: 'a2', type: 'who', text: 'ami 2', audience: 'all' },
+    { id: 'c2', type: 'mcq', text: 'couple 2', options: [] },
+  ] },
+}
+
+describe('questionAllowed', () => {
+  it('mode couple : tout est permis', () => {
+    expect(questionAllowed({ audience: 'all' }, 'couple')).toBe(true)
+    expect(questionAllowed({}, 'couple')).toBe(true)
+  })
+  it('mode amis : seulement audience:all', () => {
+    expect(questionAllowed({ audience: 'all' }, 'amis')).toBe(true)
+    expect(questionAllowed({}, 'amis')).toBe(false)
+    expect(questionAllowed({ audience: 'couple' }, 'amis')).toBe(false)
+  })
+})
+
+describe('buildQuestions — filtre public', () => {
+  it('mode amis ne tire que les questions audience:all', () => {
+    const qs = buildQuestions(['mix'], 99, mixedPacks, () => 0, 'amis')
+    expect(qs).toHaveLength(2)
+    expect(qs.map((q) => q.id).sort()).toEqual(['mix:a1', 'mix:a2'])
+  })
+  it('mode couple tire toutes les questions', () => {
+    const qs = buildQuestions(['mix'], 99, mixedPacks, () => 0, 'couple')
+    expect(qs).toHaveLength(4)
+  })
+})
 
 describe('buildQuestions', () => {
   it('tire le bon nombre de questions, préfixées par pack, sans doublon', () => {
