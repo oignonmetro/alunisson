@@ -32,6 +32,7 @@ import {
   orderedUids,
   slotResponder,
   QUESTIONS_PER_GAME,
+  TRIO_QUESTIONS,
 } from '../lib/gameLogic.js'
 import { isMatch } from '../lib/matching.js'
 import { PACKS_BY_ID } from '../data/packs/index.js'
@@ -179,7 +180,7 @@ export function useGame(uid) {
   // L'hôte lance la partie avec les packs choisis (nombre de questions fixe).
   // Le mode est déduit du nombre de joueurs : 2 = couple, 4 = équipes.
   const startGame = useCallback(
-    async (packs) => {
+    async (packs, audience = 'couple') => {
       await runTransaction(db, async (tx) => {
         const ref = gameDoc(code)
         const snap = await tx.get(ref)
@@ -190,6 +191,7 @@ export function useGame(uid) {
         const n = Object.keys(players).length
         if (n < 2 || n > 4) throw new Error('Il faut être 2 (couple), 3 (trio) ou 4 (équipes) pour jouer.')
         const mode = n === 4 ? 'teams' : n === 3 ? 'trio' : 'couple'
+        const noQuestions = 'Aucune question disponible : ajoute des packs (ou passe en mode « En couple »).'
         if (mode === 'teams') {
           const a = Object.keys(players).filter((u) => players[u].team === 'A').length
           const b = Object.keys(players).filter((u) => players[u].team === 'B').length
@@ -198,11 +200,11 @@ export function useGame(uid) {
         if (mode === 'trio') {
           // Le mode trio passe d'abord par la phase 1 : chaque joueur répond
           // seul à ses 3 questions (la séquence est construite maintenant).
-          const questions = buildTrioSequence(packs, PACKS_BY_ID, orderedUids(data))
-          if (questions.length === 0) throw new Error('Choisissez au moins un pack de questions.')
+          const questions = buildTrioSequence(packs, PACKS_BY_ID, orderedUids(data), undefined, audience)
+          if (questions.length < TRIO_QUESTIONS) throw new Error(noQuestions)
           tx.update(ref, {
             status: 'answering',
-            config: { packs, mode, playerCount: n },
+            config: { packs, mode, playerCount: n, audience },
             questions,
             currentIndex: 0,
             rounds: {},
@@ -214,7 +216,7 @@ export function useGame(uid) {
           // questions personnalisées ; la séquence est construite ensuite.
           tx.update(ref, {
             status: 'writing',
-            config: { packs, mode, playerCount: n },
+            config: { packs, mode, playerCount: n, audience },
             customPrompts: {},
             questions: [],
             rounds: {},
@@ -222,11 +224,11 @@ export function useGame(uid) {
           })
           return
         }
-        const questions = buildQuestions(packs, QUESTIONS_PER_GAME, PACKS_BY_ID).map((q) => ({ kind: 'standard', q }))
-        if (questions.length === 0) throw new Error('Choisissez au moins un pack de questions.')
+        const questions = buildQuestions(packs, QUESTIONS_PER_GAME, PACKS_BY_ID, undefined, audience).map((q) => ({ kind: 'standard', q }))
+        if (questions.length === 0) throw new Error(noQuestions)
         tx.update(ref, {
           status: 'playing',
-          config: { packs, questionCount: QUESTIONS_PER_GAME, mode, playerCount: n },
+          config: { packs, questionCount: QUESTIONS_PER_GAME, mode, playerCount: n, audience },
           questions,
           currentIndex: 0,
           rounds: {},
@@ -253,7 +255,7 @@ export function useGame(uid) {
           tx.update(ref, { [`customPrompts.${uid}`]: (text || '').trim() })
           return
         }
-        const questions = buildTeamsSequence(data.config.packs, PACKS_BY_ID, prompts, gameTeams(data))
+        const questions = buildTeamsSequence(data.config.packs, PACKS_BY_ID, prompts, gameTeams(data), undefined, data.config.audience || 'couple')
         tx.update(ref, {
           customPrompts: prompts,
           questions,

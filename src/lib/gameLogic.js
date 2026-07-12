@@ -42,20 +42,35 @@ export function shuffle(arr, rng = Math.random) {
 }
 
 /**
+ * Public visé par une question :
+ *  - mode 'couple' : toutes les questions sont permises ;
+ *  - mode 'amis' : seules les questions neutres/inclusives (`audience: 'all'`).
+ * @param {{audience?: string}} question
+ * @param {'couple'|'amis'} audience
+ * @returns {boolean}
+ */
+export function questionAllowed(question, audience) {
+  if (audience === 'amis') return question?.audience === 'all'
+  return true
+}
+
+/**
  * Construit la liste de questions d'une partie à partir des packs choisis.
  * Chaque question reçoit un id unique préfixé par son pack.
  * @param {string[]} selectedPackIds
  * @param {number} count
  * @param {Record<string, {questions: any[]}>} packsById
  * @param {() => number} [rng]
+ * @param {'couple'|'amis'} [audience]  filtre le public (défaut : couple = tout)
  * @returns {any[]}
  */
-export function buildQuestions(selectedPackIds, count, packsById, rng = Math.random) {
+export function buildQuestions(selectedPackIds, count, packsById, rng = Math.random, audience = 'couple') {
   const pool = []
   for (const pid of selectedPackIds || []) {
     const pack = packsById[pid]
     if (!pack) continue
     for (const q of pack.questions) {
+      if (!questionAllowed(q, audience)) continue
       pool.push({ ...q, packId: pid, id: `${pid}:${q.id}` })
     }
   }
@@ -74,8 +89,8 @@ export function buildQuestions(selectedPackIds, count, packsById, rng = Math.ran
  * @param {{id:string, uids:string[]}[]} teams
  * @param {() => number} [rng]
  */
-export function buildTeamsSequence(packs, packsById, customPrompts, teams, rng = Math.random) {
-  const std = buildQuestions(packs, TEAMS_STANDARD_ROUNDS, packsById, rng).map((q) => ({ kind: 'standard', q }))
+export function buildTeamsSequence(packs, packsById, customPrompts, teams, rng = Math.random, audience = 'couple') {
+  const std = buildQuestions(packs, TEAMS_STANDARD_ROUNDS, packsById, rng, audience).map((q) => ({ kind: 'standard', q }))
   const teamA = teams.find((t) => t.id === 'A') || { uids: [] }
   const teamB = teams.find((t) => t.id === 'B') || { uids: [] }
   // Les questions écrites par l'équipe A visent l'équipe B, et inversement.
@@ -112,8 +127,8 @@ export function trioGuessers(uids, target) {
  * @param {() => number} [rng]
  * @returns {{kind:'trio', q:any, target:string}[]}
  */
-export function buildTrioSequence(packs, packsById, uids, rng = Math.random) {
-  const qs = buildQuestions(packs, TRIO_QUESTIONS, packsById, rng)
+export function buildTrioSequence(packs, packsById, uids, rng = Math.random, audience = 'couple') {
+  const qs = buildQuestions(packs, TRIO_QUESTIONS, packsById, rng, audience)
   // 3 questions par joueur : on répartit les cibles puis on mélange l'ordre.
   const targets = []
   for (const u of uids || []) {

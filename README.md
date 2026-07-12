@@ -110,7 +110,10 @@ npx firebase deploy --only hosting --project VOTRE_PROJECT_ID
 1. Un joueur **crée une partie** et partage le **code** à 4 lettres.
 2. Les autres **rejoignent** avec ce code (2 joueurs = mode couple, 3 joueurs = mode trio,
    4 joueurs = mode équipes).
-3. L'hôte choisit les **packs** de questions (chaque partie compte **7 questions**).
+3. L'hôte choisit **le public** (**Entre amis** / **En couple**) et les **packs** de
+   questions (chaque partie compte **7 questions**). En mode **Entre amis**, seules les
+   questions neutres/inclusives (goûts, personnalité, habitudes, sommeil…) sont posées ;
+   les questions intimes (tendresse, histoire du couple…) sont réservées au mode couple.
 4. À chaque question, chacun répond **sans regarder l'écran de l'autre**.
 5. Les réponses se **révèlent** : ✅ en accord (point) ou ❌ différentes.
    Pour une réponse **texte** proche mais non identique, validez le **rattrapage**
@@ -179,6 +182,9 @@ firestore.rules Règles de sécurité Firestore
 Créez `src/data/packs/mon-pack.js` sur le modèle des packs existants, puis importez-le
 dans `src/data/packs/index.js`. Types de questions : `mcq` (options fixes),
 `who` (« qui de nous deux », options générées à partir des joueurs), `text` (réponse libre).
+Ajoutez `audience: 'all'` à une question pour la rendre disponible en mode **Entre amis**
+(formulation neutre, sans présupposé de couple) ; sans ce champ, elle reste réservée au
+mode **En couple**.
 
 ---
 

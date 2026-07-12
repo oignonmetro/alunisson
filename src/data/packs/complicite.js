@@ -117,11 +117,13 @@ export default {
     },
     {
       id: 'pleure-film',
+      audience: 'all',
       type: 'who',
       text: 'Qui pleure le plus devant un film ?',
     },
     {
       id: 'boude',
+      audience: 'all',
       type: 'who',
       text: 'Qui boude le plus longtemps ?',
     },
@@ -137,6 +139,7 @@ export default {
     },
     {
       id: 'protecteur',
+      audience: 'all',
       type: 'who',
       text: 'Qui est le plus protecteur ?',
     },
@@ -210,6 +213,7 @@ export default {
     },
     {
       id: 'plus-tactile',
+      audience: 'all',
       type: 'who',
       text: 'Qui est le plus tactile ?',
     },
