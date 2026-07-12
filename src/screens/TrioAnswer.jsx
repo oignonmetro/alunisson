@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { optionsFor, playerName } from '../lib/players.js'
+import { optionsFor, playerName, toggleWhoPick, whoPicksToValue } from '../lib/players.js'
 import { PACKS_BY_ID } from '../data/packs/index.js'
 
 // Phase 1 du mode trio : chaque joueur répond seul à SES 3 questions.
@@ -18,21 +18,25 @@ export default function TrioAnswer({ uid, game }) {
   const totalDone = data.questions.filter((_, i) => data.rounds?.[i]?.targetAnswer?.submitted).length
 
   const [choice, setChoice] = useState('')
+  const [picks, setPicks] = useState([])
   const [text, setText] = useState('')
   const [busy, setBusy] = useState(false)
 
   const question = current?.desc?.q
   const isText = question?.type === 'text'
+  const isWho = question?.type === 'who'
   const options = question ? optionsFor(question, data) : []
-  const canSubmit = isText ? text.trim().length > 0 : choice !== ''
+  const canSubmit = isText ? text.trim().length > 0 : isWho ? picks.length > 0 : choice !== ''
 
   async function handleSubmit() {
     if (!canSubmit || !current) return
     setBusy(true)
     setError(null)
     try {
-      await submitTargetAnswer(current.idx, isText ? text.trim() : choice)
+      const value = isText ? text.trim() : isWho ? whoPicksToValue(picks) : choice
+      await submitTargetAnswer(current.idx, value)
       setChoice('')
+      setPicks([])
       setText('')
     } catch (e) {
       setError(e)
@@ -67,6 +71,14 @@ export default function TrioAnswer({ uid, game }) {
                 onChange={(e) => setText(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && canSubmit && handleSubmit()}
               />
+            ) : isWho ? (
+              <div className="options">
+                {options.map((o) => (
+                  <button key={o.id} className={'option' + (picks.includes(o.id) ? ' selected' : '')} onClick={() => setPicks((p) => toggleWhoPick(p, o.id))}>
+                    {o.label}
+                  </button>
+                ))}
+              </div>
             ) : (
               <div className="options">
                 {options.map((o) => (
@@ -79,6 +91,7 @@ export default function TrioAnswer({ uid, game }) {
             <button className="btn btn-primary" disabled={!canSubmit || busy} onClick={handleSubmit}>
               {busy ? 'Envoi…' : 'Valider'}
             </button>
+            {isWho && <p className="muted tiny center">Tu peux en choisir plusieurs.</p>}
             <p className="muted tiny center">🤫 Réponds sincèrement : {othersNames(data, uid)} devront deviner tes réponses !</p>
           </div>
         </>

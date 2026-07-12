@@ -148,7 +148,8 @@ l'équipe la plus « à l'unisson » l'emporte.
    commune correspond à celle de la cible.
 
 Les questions **« qui de nous deux »** deviennent **« qui de nous trois »** :
-les options sont alors *A / B / C / Les trois / Aucun des trois*.
+on peut **sélectionner plusieurs joueurs** (ex. A + B, ou A + B + C) ou
+**« Aucun des trois »** (choix exclusif qui désélectionne les joueurs).
 
 ---
 
