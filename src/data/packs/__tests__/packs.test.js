@@ -60,3 +60,35 @@ describe('les packs couple-only gardent leur contenu couple', () => {
     }
   })
 })
+
+// Une question posée à la 2e personne du singulier (tu/ton/ta/tes/toi/te) n'a
+// pas le même sens selon qui répond (« toi » = joueur A pour A, joueur B pour
+// B) : ce n'est alors plus la même question pour tout le monde. Les questions
+// doivent rester formulées au collectif (on/notre) ou à l'impersonnel
+// (le/la/les), hors citations figées comme « je t'aime ».
+const SECOND_PERSON = new Set(['tu', 'ton', 'ta', 'tes', 'toi', 'te'])
+function hasShiftingSecondPerson(text) {
+  if (/je t['’]aime/i.test(text)) return false
+  const words = (text.match(/\p{L}+/gu) || []).map((w) => w.toLowerCase())
+  if (words.some((w) => SECOND_PERSON.has(w))) return true
+  return /\bt['’]/i.test(text)
+}
+
+describe('pas de référent qui glisse selon le joueur (2e personne du singulier)', () => {
+  it('aucun texte de question à la 2e personne du singulier', () => {
+    for (const p of PACKS) {
+      for (const q of p.questions) {
+        expect(hasShiftingSecondPerson(q.text), `${p.id}:${q.id} — "${q.text}"`).toBe(false)
+      }
+    }
+  })
+  it('aucun libellé d’option à la 2e personne du singulier', () => {
+    for (const p of PACKS) {
+      for (const q of p.questions) {
+        for (const o of q.options || []) {
+          expect(hasShiftingSecondPerson(o.label), `${p.id}:${q.id} option "${o.label}"`).toBe(false)
+        }
+      }
+    }
+  })
+})
