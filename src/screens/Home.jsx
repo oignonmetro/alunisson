@@ -1,14 +1,29 @@
 import { useState } from 'react'
 import { sanitizeCode, isValidCode, CODE_LENGTH } from '../lib/gameCode.js'
 
+const LAST_NAME_KEY = 'alunisson:lastName'
+
 export default function Home({ game }) {
   const { createGame, joinGame, error, setError } = game
-  const [name, setName] = useState('')
+  const [name, setName] = useState(() => {
+    try {
+      return localStorage.getItem(LAST_NAME_KEY) || ''
+    } catch {
+      return ''
+    }
+  })
   const [code, setCode] = useState('')
   const [busy, setBusy] = useState(false)
 
+  function updateName(value) {
+    setName(value)
+    try {
+      localStorage.setItem(LAST_NAME_KEY, value)
+    } catch { /* stockage indisponible, pas grave */ }
+  }
+
   async function handleCreate() {
-    if (!name.trim()) return setError(new Error('Entre ton prénom.'))
+    if (!name.trim()) return setError(new Error('Entre ton pseudo.'))
     setBusy(true)
     setError(null)
     try {
@@ -21,7 +36,7 @@ export default function Home({ game }) {
   }
 
   async function handleJoin() {
-    if (!name.trim()) return setError(new Error('Entre ton prénom.'))
+    if (!name.trim()) return setError(new Error('Entre ton pseudo.'))
     if (!isValidCode(code)) return setError(new Error('Code à ' + CODE_LENGTH + ' lettres.'))
     setBusy(true)
     setError(null)
@@ -43,13 +58,12 @@ export default function Home({ game }) {
 
       <div className="card">
         <label className="field">
-          <span>Ton prénom</span>
+          <span>Ton pseudo</span>
           <input
             autoFocus
             value={name}
             maxLength={20}
-            onChange={(e) => setName(e.target.value)}
-            placeholder="Ton prénom"
+            onChange={(e) => updateName(e.target.value)}
           />
         </label>
       </div>
