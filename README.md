@@ -182,9 +182,13 @@ firestore.rules Règles de sécurité Firestore
 Créez `src/data/packs/mon-pack.js` sur le modèle des packs existants, puis importez-le
 dans `src/data/packs/index.js`. Types de questions : `mcq` (options fixes),
 `who` (« qui de nous deux », options générées à partir des joueurs), `text` (réponse libre).
-Ajoutez `audience: 'all'` à une question pour la rendre disponible en mode **Entre amis**
-(formulation neutre, sans présupposé de couple) ; sans ce champ, elle reste réservée au
-mode **En couple**.
+Le champ `audience` règle le public d'une question :
+- absent → réservée au mode **En couple** (par défaut) ;
+- `'all'` → universelle : posée **en couple et entre amis** (goûts, personnalité, habitudes…) ;
+- `'amis'` → réservée au mode **Entre amis** (versions « groupe » des packs Souvenirs/Complicité,
+  qui n'ont pas de sens pour un duo).
+
+Chaque pack vise **35 questions jouables entre amis par type** (`who` / `mcq` / `text`).
 
 ---
 

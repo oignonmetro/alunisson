@@ -42,16 +42,22 @@ export function shuffle(arr, rng = Math.random) {
 }
 
 /**
- * Public visé par une question :
- *  - mode 'couple' : toutes les questions sont permises ;
- *  - mode 'amis' : seules les questions neutres/inclusives (`audience: 'all'`).
+ * Public visé par une question. Trois valeurs possibles pour `audience` :
+ *  - absent : question réservée au **couple** (par défaut) ;
+ *  - `'all'` : universelle, jouable en couple **et** entre amis ;
+ *  - `'amis'` : réservée au mode **entre amis** (ex. versions « groupe » des
+ *    packs Souvenirs/Complicité, qui n'ont pas de sens pour un duo).
+ * Filtrage :
+ *  - mode 'couple' : tout sauf les questions `'amis'` ;
+ *  - mode 'amis' : les questions `'all'` et `'amis'`.
  * @param {{audience?: string}} question
  * @param {'couple'|'amis'} audience
  * @returns {boolean}
  */
 export function questionAllowed(question, audience) {
-  if (audience === 'amis') return question?.audience === 'all'
-  return true
+  const a = question?.audience
+  if (audience === 'amis') return a === 'all' || a === 'amis'
+  return a !== 'amis'
 }
 
 /**
