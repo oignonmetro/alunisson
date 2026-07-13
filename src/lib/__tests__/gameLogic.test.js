@@ -23,37 +23,37 @@ const packsById = {
   p2: { questions: [ { id: 'q1', type: 'mcq', text: 'C', options: [] }, { id: 'q3', type: 'text', text: 'D' } ] },
 }
 
-// Pack avec un mélange de questions « amis » (audience:'all') et couple.
+// Pack mêlant les 3 publics : couple (défaut), 'all' (universel), 'amis' (amis only).
 const mixedPacks = {
   mix: { questions: [
-    { id: 'a1', type: 'mcq', text: 'ami 1', audience: 'all', options: [] },
-    { id: 'c1', type: 'text', text: 'couple 1' },
-    { id: 'a2', type: 'who', text: 'ami 2', audience: 'all' },
-    { id: 'c2', type: 'mcq', text: 'couple 2', options: [] },
+    { id: 'all1', type: 'mcq', text: 'universel 1', audience: 'all', options: [] },
+    { id: 'coup1', type: 'text', text: 'couple 1' },
+    { id: 'all2', type: 'who', text: 'universel 2', audience: 'all' },
+    { id: 'amis1', type: 'mcq', text: 'amis 1', audience: 'amis', options: [] },
   ] },
 }
 
 describe('questionAllowed', () => {
-  it('mode couple : tout est permis', () => {
+  it('mode couple : tout sauf les questions « amis »', () => {
     expect(questionAllowed({ audience: 'all' }, 'couple')).toBe(true)
     expect(questionAllowed({}, 'couple')).toBe(true)
+    expect(questionAllowed({ audience: 'amis' }, 'couple')).toBe(false)
   })
-  it('mode amis : seulement audience:all', () => {
+  it('mode amis : les questions « all » et « amis »', () => {
     expect(questionAllowed({ audience: 'all' }, 'amis')).toBe(true)
+    expect(questionAllowed({ audience: 'amis' }, 'amis')).toBe(true)
     expect(questionAllowed({}, 'amis')).toBe(false)
-    expect(questionAllowed({ audience: 'couple' }, 'amis')).toBe(false)
   })
 })
 
 describe('buildQuestions — filtre public', () => {
-  it('mode amis ne tire que les questions audience:all', () => {
+  it('mode amis tire les questions « all » et « amis »', () => {
     const qs = buildQuestions(['mix'], 99, mixedPacks, () => 0, 'amis')
-    expect(qs).toHaveLength(2)
-    expect(qs.map((q) => q.id).sort()).toEqual(['mix:a1', 'mix:a2'])
+    expect(qs.map((q) => q.id).sort()).toEqual(['mix:all1', 'mix:all2', 'mix:amis1'])
   })
-  it('mode couple tire toutes les questions', () => {
+  it('mode couple tire tout sauf les questions « amis »', () => {
     const qs = buildQuestions(['mix'], 99, mixedPacks, () => 0, 'couple')
-    expect(qs).toHaveLength(4)
+    expect(qs.map((q) => q.id).sort()).toEqual(['mix:all1', 'mix:all2', 'mix:coup1'])
   })
 })
 
