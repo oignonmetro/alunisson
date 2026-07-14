@@ -220,7 +220,6 @@ function TrioGuessQuestion({ uid, game, desc, idx }) {
 
       {isTarget ? (
         <div className="waiting stack center">
-          <div className="spinner" />
           <p>Ta réponse : <b>{labelForValue(question, data, round?.targetAnswer?.value)}</b></p>
           <p className="muted">{othersNames(data, uid)} essaient de se mettre d’accord…</p>
         </div>
@@ -282,7 +281,6 @@ function othersNames(data, uid) {
 function Waiting() {
   return (
     <div className="waiting stack center">
-      <div className="spinner" />
       <p>Réponse envoyée ✅</p>
       <p className="muted">En attente des autres joueurs…</p>
     </div>

@@ -44,7 +44,6 @@ export default function Writing({ uid, game }) {
 
       {submitted ? (
         <div className="waiting stack center">
-          <div className="spinner" />
           <p>Question envoyée ✅</p>
           <p className="muted">En attente des autres… ({doneCount}/{uids.length})</p>
         </div>

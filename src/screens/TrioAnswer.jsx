@@ -97,7 +97,6 @@ export default function TrioAnswer({ uid, game }) {
         </>
       ) : (
         <div className="waiting stack center">
-          <div className="spinner" />
           <p>Tes 3 réponses sont enregistrées ✅</p>
           <p className="muted">En attente des autres… ({totalDone}/{data.questions.length})</p>
         </div>
