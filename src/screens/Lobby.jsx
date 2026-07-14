@@ -4,10 +4,13 @@ import { buildQuestions } from '../lib/gameLogic.js'
 import { playerUids, playerName, TEAM_META } from '../lib/players.js'
 
 export default function Lobby({ uid, game }) {
-  const { code, game: data, isHost, startGame, setTeam, leaveGame, error, setError } = game
-  const [packs, setPacks] = useState(['gouts'])
-  const [audience, setAudience] = useState('couple')
+  const { code, game: data, isHost, startGame, setTeam, updateLobbySelection, leaveGame, error, setError } = game
   const [busy, setBusy] = useState(false)
+
+  // Source unique de vérité : la sélection de l'hôte est synchronisée en
+  // direct dans le document de partie, donc visible de tous les joueurs.
+  const packs = data.config?.packs || []
+  const audience = data.config?.audience || 'couple'
 
   const uids = playerUids(data)
   const n = uids.length
@@ -22,7 +25,14 @@ export default function Lobby({ uid, game }) {
   const canStart = (n === 2 || n === 3 || (n === 4 && balanced)) && enoughQuestions
 
   function togglePack(id) {
-    setPacks((prev) => (prev.includes(id) ? prev.filter((p) => p !== id) : [...prev, id]))
+    if (!isHost) return
+    const next = packs.includes(id) ? packs.filter((p) => p !== id) : [...packs, id]
+    updateLobbySelection(next, audience)
+  }
+
+  function handleAudience(a) {
+    if (!isHost) return
+    updateLobbySelection(packs, a)
   }
 
   async function handleTeam(t) {
@@ -38,7 +48,7 @@ export default function Lobby({ uid, game }) {
     setBusy(true)
     setError(null)
     try {
-      await startGame(packs, audience)
+      await startGame()
     } catch (e) {
       setError(e)
     } finally {
@@ -118,51 +128,54 @@ export default function Lobby({ uid, game }) {
         )}
       </div>
 
-      {isHost ? (
-        <div className="card stack">
-          <h3 className="card-title">Avec qui joue-t-on ?</h3>
-          <div className="team-buttons">
-            {[
-              { id: 'couple', label: 'En couple' },
-              { id: 'amis', label: 'Entre amis' },
-            ].map((a) => (
+      <div className="card stack">
+        <h3 className="card-title">Avec qui joue-t-on ?</h3>
+        <div className="team-buttons">
+          {[
+            { id: 'couple', label: 'En couple' },
+            { id: 'amis', label: 'Entre amis' },
+          ].map((a) => (
+            <button
+              key={a.id}
+              className={'team-btn' + (audience === a.id ? ' active' : '')}
+              style={audience === a.id ? { borderColor: 'var(--primary)', color: 'var(--primary)' } : undefined}
+              onClick={() => handleAudience(a.id)}
+            >
+              {a.label}
+            </button>
+          ))}
+        </div>
+        <p className="muted tiny">
+          {audience === 'amis'
+            ? 'Seules les questions neutres (goûts, personnalité, habitudes) sont posées.'
+            : 'Toutes les questions, y compris celles sur votre couple.'}
+        </p>
+
+        <h3 className="card-title">{isHost ? 'Choisir les packs de questions' : 'Packs choisis par l’hôte'}</h3>
+        <div className="list">
+          {PACKS.map((p) => {
+            const count = audience === 'amis' ? friendsCount(p) : p.questions.length
+            return (
               <button
-                key={a.id}
-                className={'team-btn' + (audience === a.id ? ' active' : '')}
-                style={audience === a.id ? { borderColor: 'var(--primary)', color: 'var(--primary)' } : undefined}
-                onClick={() => setAudience(a.id)}
+                key={p.id}
+                className={'list-row' + (isHost ? ' selectable' : '') + (packs.includes(p.id) ? ' selected' : '')}
+                onClick={() => togglePack(p.id)}
+                disabled={isHost && audience === 'amis' && count === 0}
               >
-                {a.label}
+                {p.name} <span className="muted">· {count} questions{audience === 'amis' ? ' amis' : ''}</span>
               </button>
-            ))}
-          </div>
+            )
+          })}
+        </div>
+
+        {packs.length > 0 && available < needed && (
           <p className="muted tiny">
-            {audience === 'amis'
-              ? 'Seules les questions neutres (goûts, personnalité, habitudes) sont posées.'
-              : 'Toutes les questions, y compris celles sur votre couple.'}
+            Seulement {available} question{available > 1 ? 's' : ''} avec cette sélection — il en faut {needed}.
+            {' '}{isHost ? `Ajoute un pack${audience === 'amis' ? ' ou repasse « En couple »' : ''}.` : 'En attente que l’hôte ajuste la sélection…'}
           </p>
+        )}
 
-          <h3 className="card-title">Choisir les packs de questions</h3>
-          <div className="list">
-            {PACKS.map((p) => {
-              const count = audience === 'amis' ? friendsCount(p) : p.questions.length
-              return (
-                <button
-                  key={p.id}
-                  className={'list-row selectable' + (packs.includes(p.id) ? ' selected' : '')}
-                  onClick={() => togglePack(p.id)}
-                  disabled={audience === 'amis' && count === 0}
-                >
-                  {p.name} <span className="muted">· {count} questions{audience === 'amis' ? ' amis' : ''}</span>
-                </button>
-              )
-            })}
-          </div>
-
-          {packs.length > 0 && available < needed && (
-            <p className="muted tiny">Seulement {available} question{available > 1 ? 's' : ''} avec cette sélection — il en faut {needed}. Ajoute un pack{audience === 'amis' ? ' ou repasse « En couple »' : ''}.</p>
-          )}
-
+        {isHost ? (
           <button
             className="btn btn-primary"
             disabled={busy || !canStart || packs.length === 0}
@@ -170,10 +183,10 @@ export default function Lobby({ uid, game }) {
           >
             {startLabel}
           </button>
-        </div>
-      ) : (
-        <p className="muted center">L’hôte choisit les packs de questions…<br />Prépare-toi !</p>
-      )}
+        ) : (
+          <p className="muted center tiny">En attente que l’hôte démarre la partie…</p>
+        )}
+      </div>
 
       {error && <p className="error">{error.message}</p>}
     </div>
