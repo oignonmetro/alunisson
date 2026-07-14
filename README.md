@@ -177,6 +177,17 @@ src/
 firestore.rules Règles de sécurité Firestore
 ```
 
+### Reconnexion automatique
+
+Changer d'appli sur mobile (ou mettre l'onglet en veille) ne fait jamais perdre la
+partie : l'identifiant du joueur (uid Firebase Auth anonyme) est persisté par le SDK,
+et le **code de la room courante est persisté en `localStorage`**, relu de façon
+synchrone au montage (`useGame.js`, `readPersistedCode`/`persistCode`) pour reprendre
+directement la partie sans repasser par l'écran d'accueil. Il n'y a volontairement
+aucun mécanisme de présence temps réel (`onDisconnect`, heartbeat…) qui retirerait un
+joueur de `players` sur une simple coupure réseau — l'appartenance à la room est un
+état persistant, pas une présence éphémère.
+
 ### Ajouter un pack de questions
 
 Créez `src/data/packs/mon-pack.js` sur le modèle des packs existants, puis importez-le
