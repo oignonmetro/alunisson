@@ -33,6 +33,17 @@ export default function App() {
   const { game } = g
 
   if (!game) {
+    // Une room persistée (localStorage) est en cours de reconnexion : on
+    // attend la première réponse Firestore plutôt que d'afficher l'accueil,
+    // pour éviter un flash de retour à l'écran de saisie du code.
+    if (g.loading) {
+      return (
+        <div className="screen center">
+          <div className="brand">À l’unisson</div>
+          <p className="muted">Reconnexion à la partie…</p>
+        </div>
+      )
+    }
     return <Home uid={uid} game={g} />
   }
 

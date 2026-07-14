@@ -18,7 +18,7 @@ import {
   serverTimestamp,
 } from 'firebase/firestore'
 import { db } from '../firebase.js'
-import { generateCode } from '../lib/gameCode.js'
+import { generateCode, isValidCode, sanitizeCode } from '../lib/gameCode.js'
 import {
   buildQuestions,
   buildTeamsSequence,
@@ -49,21 +49,81 @@ function normalizeCustomRound(round) {
   return base
 }
 
+// Le code de la room courante est persisté en localStorage (et pas seulement
+// en state React) pour survivre à un remontage complet de l'app — ce qui se
+// produit typiquement quand l'OS décharge l'onglet en arrière-plan (changement
+// d'appli mobile, mise en veille prolongée). Sans ça, revenir sur l'app repart
+// de zéro et redemande le code, même si la room est toujours valide côté
+// serveur. localStorage (et non sessionStorage) pour survivre aussi à une
+// fermeture complète de l'onglet/navigateur.
+export const ROOM_CODE_KEY = 'alunisson:roomCode'
+
+export function readPersistedCode() {
+  try {
+    const stored = localStorage.getItem(ROOM_CODE_KEY)
+    // Le code n'est retenu que s'il est déjà bien formé (pas juste
+    // « nettoyable » en un code valide) : on ne veut pas reconstruire un
+    // code différent à partir d'une valeur altérée en stockage.
+    if (!stored || sanitizeCode(stored) !== stored || !isValidCode(stored)) return null
+    return stored
+  } catch {
+    return null
+  }
+}
+
+export function persistCode(code) {
+  try {
+    if (code) localStorage.setItem(ROOM_CODE_KEY, code)
+    else localStorage.removeItem(ROOM_CODE_KEY)
+  } catch {
+    // stockage indisponible (navigation privée, quota…) : pas bloquant, on
+    // perd juste la reconnexion automatique.
+  }
+}
+
 export function useGame(uid) {
-  const [code, setCode] = useState(null)
+  // Initialisé de façon synchrone (dans l'initializer de useState, pas un
+  // useEffect) pour que le tout premier rendu sache déjà si on doit tenter de
+  // rejoindre une room persistée, sans flash de l'écran d'accueil.
+  const [code, setCodeState] = useState(readPersistedCode)
   const [game, setGame] = useState(null)
+  // Vrai tant qu'on attend la première réponse Firestore pour une room
+  // restaurée depuis le stockage — distingue « pas de room » de « room en
+  // cours de reconnexion », pour que App.jsx n'affiche pas Home par erreur.
+  const [loading, setLoading] = useState(() => Boolean(readPersistedCode()))
   const [error, setError] = useState(null)
+
+  const setCode = useCallback((next) => {
+    persistCode(next)
+    setCodeState(next)
+  }, [])
 
   // Abonnement temps réel au document de partie.
   useEffect(() => {
     if (!code) {
       setGame(null)
+      setLoading(false)
       return
     }
+    setLoading(true)
     const unsub = onSnapshot(
       gameDoc(code),
-      (snap) => setGame(snap.exists() ? snap.data() : null),
-      (e) => setError(e),
+      (snap) => {
+        setLoading(false)
+        if (snap.exists()) {
+          setGame(snap.data())
+        } else {
+          // Room disparue (supprimée, code invalide…) : on nettoie la
+          // persistance pour ne pas retenter indéfiniment le même code mort.
+          setGame(null)
+          persistCode(null)
+          setCodeState(null)
+        }
+      },
+      (e) => {
+        setLoading(false)
+        setError(e)
+      },
     )
     return unsub
   }, [code])
@@ -449,6 +509,7 @@ export function useGame(uid) {
   return {
     code,
     game,
+    loading,
     error,
     setError,
     isHost: Boolean(game && uid && game.hostUid === uid),
