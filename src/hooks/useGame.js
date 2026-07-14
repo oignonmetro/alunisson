@@ -15,6 +15,7 @@ import {
   onSnapshot,
   runTransaction,
   setDoc,
+  updateDoc,
   serverTimestamp,
 } from 'firebase/firestore'
 import { db } from '../firebase.js'
@@ -180,7 +181,10 @@ export function useGame(uid) {
         players: {
           [uid]: { name: name?.trim() || 'Joueur 1', isHost: true, connected: true, team: null, joinedAt: Date.now() },
         },
-        config: { packs: [], questionCount: QUESTIONS_PER_GAME },
+        // packs/audience par défaut = présélection affichée dans le salon ;
+        // l'hôte les ajuste en direct via updateLobbySelection (visible de
+        // tous, pas seulement au moment de lancer la partie).
+        config: { packs: ['gouts'], audience: 'couple', questionCount: QUESTIONS_PER_GAME },
         questions: [],
         currentIndex: 0,
         rounds: {},
@@ -237,16 +241,35 @@ export function useGame(uid) {
     [code, uid],
   )
 
-  // L'hôte lance la partie avec les packs choisis (nombre de questions fixe).
+  // Met à jour en direct la sélection de packs / le public visé pendant le
+  // salon, pour que tous les joueurs la voient au fur et à mesure (pas
+  // seulement l'hôte au moment de lancer). Best-effort, pas de transaction :
+  // un seul rédacteur (l'hôte) touche ces champs à la fois.
+  const updateLobbySelection = useCallback(
+    async (packs, audience) => {
+      if (!code) return
+      try {
+        await updateDoc(gameDoc(code), { 'config.packs': packs, 'config.audience': audience })
+      } catch {
+        // pas bloquant (ex: partie déjà lancée entre-temps)
+      }
+    },
+    [code],
+  )
+
+  // L'hôte lance la partie avec les packs déjà choisis en direct dans le
+  // salon (config.packs/config.audience, synchronisés via updateLobbySelection).
   // Le mode est déduit du nombre de joueurs : 2 = couple, 4 = équipes.
   const startGame = useCallback(
-    async (packs, audience = 'couple') => {
+    async () => {
       await runTransaction(db, async (tx) => {
         const ref = gameDoc(code)
         const snap = await tx.get(ref)
         if (!snap.exists()) throw new Error('Partie introuvable.')
         const data = snap.data()
         if (data.hostUid !== uid) throw new Error('Seul l’hôte peut lancer la partie.')
+        const packs = data.config?.packs || []
+        const audience = data.config?.audience || 'couple'
         const players = data.players || {}
         const n = Object.keys(players).length
         if (n < 2 || n > 4) throw new Error('Il faut être 2 (couple), 3 (trio) ou 4 (équipes) pour jouer.')
@@ -516,6 +539,7 @@ export function useGame(uid) {
     createGame,
     joinGame,
     setTeam,
+    updateLobbySelection,
     startGame,
     submitPrompt,
     submitTargetAnswer,
