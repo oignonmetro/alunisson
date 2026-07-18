@@ -176,9 +176,53 @@ doit préserver cet équilibre (ajouter/retirer par triplets équilibrés).
 
 ---
 
-## 9. Procédure de test
+## 9. Question convergente, pas simple habitude individuelle
 
-### 9.1 Barrière automatique (obligatoire)
+**[Relecture humaine ; pré-filtre outillé — voir `npm run audit:convergence`]**
+
+Une question « à matcher » n'a de sens que s'il existe **une raison d'attendre
+que deux joueurs en phase répondent pareil**. Cette raison peut venir de :
+
+| Source de convergence | Exemple | Verdict |
+| --- | --- | --- |
+| **Référent partagé** (objet / événement / routine **commune**) | « Notre rythme de coucher ? », « Le meilleur souvenir **commun** » | ✅ sûr |
+| **Consensus** (jugement sur **la même** cible) | tous les `who` ; « Dans le groupe, on est plutôt… » | ✅ sûr |
+| **Goût partageable** (préférence qu'un duo a de l'intérêt à comparer) | « Team 🐶/🐱 », « Le chocolat, on l'aime… » | ⚠️ toléré (cœur du jeu) |
+| **Habitude individuelle** (chacun décrit sa logistique privée) | « La boîte mail… », « La ponctualité… », « Le temps d'écran… » | ❌ **risqué** |
+
+**Le piège** — un QCM du type « La boîte mail… (Inbox zéro / 1000 non lus /
+Le chaos) » demande à chacun de décrire **sa propre** habitude. Deux amis (ou
+un couple) ont des comportements indépendants : un désaccord n'y **mesure
+rien** — ce n'est pas « pas synchro », juste « personnes différentes ». Le
+taux de coïncidence est quasi aléatoire et l'enjeu relationnel nul.
+
+**Grille de détection** (à appliquer à chaque `mcq`, et aux `text` fermés) :
+
+1. Y a-t-il un **référent / fait partagé** (« notre / nos / ensemble », histoire
+   commune) ? → convergent, garder.
+2. Sinon, est-ce un **consensus** (jugement sur une même cible) ou un **goût
+   réellement partageable** ? → tolérable, garder.
+3. Sinon → chacun décrit une **habitude / un état privé** sans raison de
+   coïncider et sans enjeu → **risqué : reformuler ou supprimer**.
+
+**Signal fort** : un QCM risqué est souvent le *doublon cassé* d'un `who`
+convergent déjà présent dans le pack (« La ponctualité… » ⇄ « Qui est le plus
+souvent en retard ? »). Sa version `who` étant meilleure, le QCM est à
+retravailler.
+
+**Réparer** — ancrer sur un référent commun (« **Notre** X… »), passer à un
+**consensus** (« Le plus pénible quand on… ? »), ou remplacer par un vrai goût
+partageable. Rester un `mcq` pour préserver l'équilibre 35/type/pack.
+
+Le script `npm run audit:convergence` liste les QCM **sans marqueur de référent
+partagé** : ce sont des **candidats à trier** (le pré-filtre lexical seul
+sur-détecte — il attrape aussi les goûts légitimes), pas un verdict.
+
+---
+
+## 10. Procédure de test
+
+### 10.1 Barrière automatique (obligatoire)
 
 ```bash
 npm run test    # vitest : structure, compteurs, unicité, 2e personne
@@ -189,7 +233,7 @@ npm run build   # vérifie que les packs se compilent
 uniques par mode · QCM ≥ 2 options · packs couple-only non pollués · **aucune**
 2ᵉ personne du singulier (texte **et** options).
 
-### 9.2 Relecture humaine (une passe par question)
+### 10.2 Relecture humaine (une passe par question)
 
 Pour **chaque** question générée, répondre OUI à tout :
 
@@ -203,11 +247,14 @@ Pour **chaque** question générée, répondre OUI à tout :
       couple. Triplets `who/mcq/text` équilibrés préservés.
 - [ ] **Format (§7)** — type respecté ; `text` réellement convergent et court.
 - [ ] **Unicité (§8)** — pas de quasi-doublon dans le pack.
+- [ ] **Convergence (§9)** — la question n'est pas une simple **habitude
+      individuelle** : il existe une raison (référent partagé, consensus, goût)
+      pour que deux joueurs en phase répondent pareil.
 - [ ] **Test du miroir** — en me mettant à la place de **deux** joueurs
       « en phase » (puis, en modes trio/équipes, de **trois/quatre**), ils
       donnent spontanément la **même** réponse. Sinon, reformuler.
 
-### 9.3 Vérification e2e (optionnelle, sur gros lots)
+### 10.3 Vérification e2e (optionnelle, sur gros lots)
 
 Émulateurs + partie de bout en bout (couple **et** amis), pour confirmer que le
 filtrage `audience` et le décompte du salon (7 en couple/équipes, 9 en trio)

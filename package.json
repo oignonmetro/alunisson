@@ -10,6 +10,7 @@
     "preview": "vite preview",
     "test": "vitest run",
     "test:watch": "vitest",
+    "audit:convergence": "node scripts/audit-convergence.mjs",
     "emulators": "firebase emulators:start --only auth,firestore",
     "dev:emulator": "cross-env VITE_USE_EMULATOR=1 vite"
   },
