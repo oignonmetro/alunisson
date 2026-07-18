@@ -214,9 +214,12 @@ retravailler.
 **consensus** (« Le plus pénible quand on… ? »), ou remplacer par un vrai goût
 partageable. Rester un `mcq` pour préserver l'équilibre 35/type/pack.
 
-Le script `npm run audit:convergence` liste les QCM **sans marqueur de référent
-partagé** : ce sont des **candidats à trier** (le pré-filtre lexical seul
-sur-détecte — il attrape aussi les goûts légitimes), pas un verdict.
+Le script `npm run audit:convergence` liste les QCM **sans marqueur de
+convergence** (ni référent partagé, ni fait d'histoire, ni tournure de
+consensus — superlatif, dynamique de groupe…) : ce sont des **candidats à
+trier**, pas un verdict. Le pré-filtre reste volontairement lexical : les
+candidats restants sont surtout des goûts « nus » (« Team 🐶/🐱 »), tolérés
+mais à surveiller, et d'éventuelles habitudes individuelles oubliées.
 
 ---
 
