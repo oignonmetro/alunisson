@@ -290,15 +290,15 @@ export default {
       text: 'Qui laisse le frigo se vider sans rien dire ?',
     },
     {
-      id: 'lever-weekend',
+      id: 'qm-dimanche-matin',
       audience: 'all',
       type: 'mcq',
-      text: 'Le week-end, on se lève…',
+      text: 'Le dimanche matin idéal ?',
       options: [
-        { id: 'tot', label: 'Tôt' },
-        { id: 'tard', label: 'Tard' },
-        { id: 'decale', label: 'Décalés' },
-        { id: 'depend', label: 'Ça dépend' },
+        { id: 'grasse', label: 'Une grasse matinée' },
+        { id: 'petitdej', label: 'Un petit-déj qui traîne' },
+        { id: 'sortie', label: 'Une sortie au grand air' },
+        { id: 'rien', label: 'Rien du tout' },
       ],
     },
     {
