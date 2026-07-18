@@ -389,7 +389,7 @@ export default {
     { id: 'qt-boisson-journee', audience: 'all', type: 'text', text: 'La boisson de toute la journée ?' },
     { id: 'qt-rentree', audience: 'all', type: 'text', text: 'Ce qu’on fait en premier en rentrant chez soi ?' },
     { id: 'qt-astuce-lever', audience: 'all', type: 'text', text: 'L’astuce pour se lever le matin ?' },
-    { id: 'qt-habitude-bizarre', audience: 'all', type: 'text', text: 'Une habitude bizarre que tout le monde connaît ?' },
+    { id: 'qt-habitude-bizarre', audience: 'all', type: 'text', text: 'Son habitude bizarre que tout le monde connaît ?' },
     { id: 'qt-jour-prefere', audience: 'all', type: 'text', text: 'Le jour préféré de la semaine ?' },
     { id: 'qt-bonne-humeur', audience: 'all', type: 'text', text: 'Le truc qui met de bonne humeur le matin ?' },
     { id: 'qt-indispensable-dodo', audience: 'all', type: 'text', text: 'L’indispensable pour bien dormir ?' },
