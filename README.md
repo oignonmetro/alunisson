@@ -201,6 +201,11 @@ Le champ `audience` règle le public d'une question :
 
 Chaque pack vise **35 questions jouables entre amis par type** (`who` / `mcq` / `text`).
 
+Avant d'ajouter ou de générer des questions, suivez le guide de rédaction
+[`docs/redaction-questions.md`](docs/redaction-questions.md) : il détaille les
+règles (référent commun vs individuel, pas de 2ᵉ personne, sujet collectif,
+neutralité `audience`…) et sert de **procédure de test** à passer sur chaque lot.
+
 ---
 
 ## Et ensuite ?
