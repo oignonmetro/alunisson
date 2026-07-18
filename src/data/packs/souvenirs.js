@@ -378,7 +378,7 @@ export default {
     { id: 'sm-crush-age', audience: 'amis', type: 'mcq', text: 'Le premier crush, c’était…', options: [ { id: 'primaire', label: 'En primaire' }, { id: 'college', label: 'Au collège' }, { id: 'lycee', label: 'Au lycée' }, { id: 'star', label: 'Une star' } ] },
     { id: 'sm-madeleine', audience: 'amis', type: 'mcq', text: 'La madeleine de Proust du groupe ?', options: [ { id: 'odeur', label: 'Une odeur' }, { id: 'chanson', label: 'Une chanson' }, { id: 'plat', label: 'Un plat' }, { id: 'lieu', label: 'Un lieu' } ] },
     { id: 'sm-lieu-enfance', audience: 'amis', type: 'mcq', text: 'Le décor de l’enfance ?', options: [ { id: 'ville', label: 'La ville' }, { id: 'campagne', label: 'La campagne' }, { id: 'mer', label: 'Le bord de mer' }, { id: 'etranger', label: 'L’étranger' } ] },
-    { id: 'sm-groupe-forme', audience: 'amis', type: 'mcq', text: 'Le groupe s’est formé…', options: [ { id: 'ecole', label: 'À l’école' }, { id: 'travail', label: 'Au travail' }, { id: 'quartier', label: 'Dans le quartier' }, { id: 'hasard', label: 'Par hasard' } ] },
+    { id: 'sm-groupe-forme', audience: 'amis', type: 'mcq', text: 'On est devenus amis…', options: [ { id: 'ecole', label: 'À l’école' }, { id: 'travail', label: 'Au travail' }, { id: 'quartier', label: 'Dans le quartier' }, { id: 'hasard', label: 'Par hasard' } ] },
     { id: 'sm-dernier-souvenir', audience: 'amis', type: 'mcq', text: 'Le tout dernier super souvenir en date ?', options: [ { id: 'voyage', label: 'Un voyage' }, { id: 'soiree', label: 'Une soirée' }, { id: 'concert', label: 'Un concert' }, { id: 'nature', label: 'Une sortie nature' } ] },
 
     // --- Textes inclusifs (souvenirs, enfance, expériences) ---
