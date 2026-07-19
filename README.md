@@ -120,6 +120,17 @@ npx firebase deploy --only hosting --project VOTRE_PROJECT_ID
    dans le duo pour marquer le point. Barème : 2 pts (choix), 5 pts (texte).
 6. À la fin : **score et récapitulatif**. Rejouez à volonté !
 
+### Manches dirigées 🕵️ (couple et équipes)
+
+Sur **2 des 7 questions**, la mécanique change : au lieu que chacun réponde pour
+soi, une **cible** est désignée (en alternance) et répond **en privé**, pendant
+que son binôme (ou coéquipier en mode équipes) essaie de **deviner sa réponse**.
+Le point vient de la coïncidence devinette↔réalité, pas d'une coïncidence de
+goûts entre deux avis indépendants — ces questions (pack **Portrait**, non
+sélectionnable, toujours incluses) testent la **connaissance qu'on a de
+l'autre**, quel que soit son goût réel. En équipes, chaque équipe joue sa
+propre paire cible/coéquipier, en parallèle sur la même question.
+
 ### Mode équipes (4 joueurs)
 
 À **4 joueurs**, le mode équipes s'active automatiquement : chacun choisit son
@@ -127,8 +138,9 @@ camp (**Équipe A** ou **Équipe B**, 2 par équipe) dans le salon.
 
 1. **Rédaction** : avant de jouer, chaque joueur écrit **une question pour l'équipe
    adverse**.
-2. **7 manches** : 5 questions communes (packs, 2/5 pts) + **2 manches personnalisées**
-   où chaque équipe reçoit une question écrite par l'adversaire (**5 pts**).
+2. **7 manches** : 3 questions communes (packs, 2/5 pts) + **2 manches personnalisées**
+   où chaque équipe reçoit une question écrite par l'adversaire (**5 pts**) + **2 manches
+   dirigées** (pack Portrait, voir plus haut).
 3. Sur une question personnalisée, l'équipe cible peut **« retourner la question »**
    pour ne pas y répondre : c'est alors l'équipe adverse (l'autrice) qui tente de
    gagner les 5 points.
@@ -199,12 +211,19 @@ Le champ `audience` règle le public d'une question :
 - `'amis'` → réservée au mode **Entre amis** (versions « groupe » des packs Souvenirs/Complicité,
   qui n'ont pas de sens pour un duo).
 
-Chaque pack vise **35 questions jouables entre amis par type** (`who` / `mcq` / `text`).
+Chaque pack vise **105 questions jouables entre amis, avec au moins 30 par type**
+(`who` / `mcq` / `text`).
 
 Avant d'ajouter ou de générer des questions, suivez le guide de rédaction
 [`docs/redaction-questions.md`](docs/redaction-questions.md) : il détaille les
 règles (référent commun vs individuel, pas de 2ᵉ personne, sujet collectif,
-neutralité `audience`…) et sert de **procédure de test** à passer sur chaque lot.
+neutralité `audience`, connaissance vs coïncidence de goûts…) et sert de
+**procédure de test** à passer sur chaque lot.
+
+Le pack **Portrait** (`src/data/packs/portrait.js`) est un cas à part : il
+alimente les **manches dirigées** (voir plus haut) et n'est **pas**
+sélectionnable au salon — il n'est donc pas dans `PACKS`/`index.js` comme les
+autres, mais exporté séparément (`PORTRAIT_PACK`) et inclus automatiquement.
 
 ---
 

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { PACKS, PACKS_BY_ID, totalQuestions, friendsCount } from '../index.js'
+import { PACKS, PACKS_BY_ID, PORTRAIT_PACK, totalQuestions, friendsCount } from '../index.js'
 import { questionAllowed } from '../../../lib/gameLogic.js'
 
 const typeCounts = (qs) => {
@@ -84,21 +84,52 @@ function hasShiftingSecondPerson(text) {
   return /\bt['’]/i.test(text)
 }
 
+// Le pack Portrait (manches dirigées) n'est pas dans PACKS (non sélectionnable
+// au salon) mais reste soumis aux mêmes exigences de rédaction de base.
+const PACKS_WITH_PORTRAIT = [...PACKS, PORTRAIT_PACK]
+
 describe('pas de référent qui glisse selon le joueur (2e personne du singulier)', () => {
   it('aucun texte de question à la 2e personne du singulier', () => {
-    for (const p of PACKS) {
+    for (const p of PACKS_WITH_PORTRAIT) {
       for (const q of p.questions) {
         expect(hasShiftingSecondPerson(q.text), `${p.id}:${q.id} — "${q.text}"`).toBe(false)
       }
     }
   })
   it('aucun libellé d’option à la 2e personne du singulier', () => {
-    for (const p of PACKS) {
+    for (const p of PACKS_WITH_PORTRAIT) {
       for (const q of p.questions) {
         for (const o of q.options || []) {
           expect(hasShiftingSecondPerson(o.label), `${p.id}:${q.id} option "${o.label}"`).toBe(false)
         }
       }
     }
+  })
+})
+
+describe('pack Portrait (manches dirigées)', () => {
+  it('ids et libellés uniques', () => {
+    const ids = PORTRAIT_PACK.questions.map((q) => q.id)
+    const texts = PORTRAIT_PACK.questions.map((q) => q.text)
+    expect(new Set(ids).size).toBe(ids.length)
+    expect(new Set(texts).size).toBe(texts.length)
+  })
+  it('uniquement mcq/text — pas de `who` (la question porte sur UNE cible, pas une comparaison)', () => {
+    for (const q of PORTRAIT_PACK.questions) {
+      expect(['mcq', 'text'], `${q.id} a le type "${q.type}"`).toContain(q.type)
+    }
+  })
+  it('les QCM ont au moins deux options', () => {
+    for (const q of PORTRAIT_PACK.questions.filter((q) => q.type === 'mcq')) {
+      expect(Array.isArray(q.options) && q.options.length >= 2, q.id).toBe(true)
+    }
+  })
+  it('pas de tag `audience` — le pack est universel (jamais filtré par public)', () => {
+    for (const q of PORTRAIT_PACK.questions) {
+      expect(q.audience, `${q.id} porte un tag audience`).toBeUndefined()
+    }
+  })
+  it('n’est pas sélectionnable au salon (absent de PACKS)', () => {
+    expect(PACKS.some((p) => p.id === PORTRAIT_PACK.id)).toBe(false)
   })
 })
