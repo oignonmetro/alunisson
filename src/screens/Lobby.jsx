@@ -73,7 +73,6 @@ export default function Lobby({ uid, game }) {
   return (
     <div className="screen">
       <div className="topbar">
-        <button className="btn btn-link" onClick={leaveGame}>← Quitter</button>
         <span className="brand small">À l’unisson</span>
       </div>
 
@@ -163,7 +162,7 @@ export default function Lobby({ uid, game }) {
                   onClick={() => togglePack(p.id)}
                   disabled={audience === 'amis' && count === 0}
                 >
-                  {p.name} <span className="muted">· {count} questions{audience === 'amis' ? ' amis' : ''}</span>
+                  {p.name}
                 </button>
               )
             })
@@ -171,10 +170,9 @@ export default function Lobby({ uid, game }) {
             packs.map((id) => {
               const p = PACKS_BY_ID[id]
               if (!p) return null
-              const count = audience === 'amis' ? friendsCount(p) : p.questions.length
               return (
                 <div key={p.id} className="list-row selected">
-                  {p.name} <span className="muted">· {count} questions{audience === 'amis' ? ' amis' : ''}</span>
+                  {p.name}
                 </div>
               )
             })
@@ -202,6 +200,10 @@ export default function Lobby({ uid, game }) {
           <p className="muted center tiny">En attente que l’hôte démarre la partie…</p>
         )}
       </div>
+
+      <button className="btn-link center tiny" style={{ textDecoration: 'underline' }} onClick={leaveGame}>
+        Quitter la salle
+      </button>
 
       {error && <p className="error">{error.message}</p>}
     </div>
