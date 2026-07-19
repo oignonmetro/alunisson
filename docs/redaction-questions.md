@@ -141,9 +141,11 @@ du lit, budget du foyer, déco de « notre » maison). Dans le doute → laisser
 **couple** (champ absent).
 
 **Contrainte de volume (bloquante).** Le test exige, **pour chaque pack**,
-**exactement 35 questions jouables entre amis par type** (`who`, `mcq`, `text`),
-soit 105 questions `all`+`amis` par pack. Toute nouvelle question `amis`/`all`
-doit préserver cet équilibre (ajouter/retirer par triplets équilibrés).
+**105 questions jouables entre amis au total** (`all`+`amis`), avec **au moins
+30 par type** (`who`, `mcq`, `text`) — pas nécessairement 35 pile : la
+répartition penche naturellement vers `who` au fil des reconversions du §10.
+Toute nouvelle question `amis`/`all` doit préserver le total de 105 et le
+plancher de 30 par type.
 
 ---
 
@@ -223,20 +225,77 @@ mais à surveiller, et d'éventuelles habitudes individuelles oubliées.
 
 ---
 
-## 10. Procédure de test
+## 10. Connaissance de l'autre, pas coïncidence de goûts
 
-### 10.1 Barrière automatique (obligatoire)
+**[Décision de conception ; conversion au cas par cas — relecture humaine]**
+
+Au-delà du §9 (habitude arbitraire vs consensus), il y a un problème plus
+profond, propre à la mécanique `mcq`/`text` elle-même : deux joueurs répondent
+**chacun pour soi**, et le point vient de l'**égalité stricte** des deux
+réponses (`isMatch`, voir `src/lib/matching.js`). Pour un jugement partagé
+(« qui est le plus bordélique ? »), cette mécanique teste bien la
+**connaissance de l'autre** : en connaissant bien son binôme, on estime
+correctement un fait externe partagé, quel que soit son propre avis sur le
+désordre. Mais pour un **goût personnel** (« Team 🐶/🐱 ? », chacun répond pour
+lui-même), la mécanique échoue structurellement : même en connaissant
+parfaitement son binôme, si les goûts réels diffèrent, aucune connaissance ne
+peut produire une réponse identique. Le « match » n'y mesure alors que la
+**chance d'avoir le même goût**, pas la compatibilité par la connaissance —
+et à l'inverse, un « non-match » y **sanctionne** une vraie différence de
+goût, ce qu'un jeu de couple/d'amis ne devrait jamais faire.
+
+**Principe** : les candidats ne doivent jamais être sanctionnés pour la
+divergence de leurs goûts. Quels que soient ces goûts, s'ils se connaissent
+parfaitement, ils doivent pouvoir converger vers une réponse commune — c'est
+pour ça que les questions **`who`** (« qui de nous… ? ») fonctionnent si bien :
+la connaissance mutuelle produit directement la coïncidence, sur *n'importe
+quel* goût réel des deux joueurs.
+
+**Détection — repérer un « who » déguisé en `mcq`.** Signal fort : un `mcq`
+dont les options ont déjà la forme *option A / option B / « Les deux » /
+« Aucun »-ou-« Ça dépend »* mime la structure native de `who` (qui génère
+lui-même joueur A / joueur B / « Les deux » / « Aucun des deux »). C'est un
+goût binaire présenté comme un `mcq`, alors qu'il devrait être un `who`.
+
+**Conversion.** Passer `type: 'mcq'` → `type: 'who'`, retirer le champ
+`options` (généré automatiquement à partir des joueurs — jamais stocké sur la
+question), et reformuler `text` en jugement comparatif entre les joueurs :
+
+- ❌ « Team… » (Chien / Chat / Les deux / Aucun)
+  → ✅ « Qui est plutôt Team Chien ? » (`type: 'who'`)
+- ❌ « On est plutôt… » (Du matin / Du soir / Ni l'un ni l'autre / Ça dépend)
+  → ✅ « Qui est plutôt du matin ? »
+- ❌ « Au petit-déj, on est plutôt… » (Sucré / Salé / Les deux ! / On saute)
+  → ✅ « Qui est plutôt sucré au petit-déj ? »
+
+**Limite assumée (hors périmètre pour l'instant).** Cette conversion ne
+s'applique qu'aux goûts **binaires ou réductibles à un seul axe
+comparatif**. Un goût véritablement ouvert à options multiples et non
+comparables (parfum de glace, couleur préférée, style musical à 4 genres
+distincts…) ne se laisse pas réduire à un « qui de nous… » sans perdre du
+sens, et reste donc en `mcq`/`text` — toléré tel quel (cf. §9, tier « goût
+partageable »), le désaccord y étant informatif plutôt qu'arbitraire, même
+s'il n'est pas testable par la connaissance. Une refonte plus large de la
+mécanique (chacun donne sa vraie réponse *et* devine celle du partenaire,
+pour rendre **tout** contenu testable par la connaissance) reste une option
+future, plus coûteuse, non engagée à ce stade.
+
+---
+
+## 11. Procédure de test
+
+### 11.1 Barrière automatique (obligatoire)
 
 ```bash
 npm run test    # vitest : structure, compteurs, unicité, 2e personne
 npm run build   # vérifie que les packs se compilent
 ```
 
-`packs.test.js` garantit alors : 35 amis/type/pack · ids uniques · libellés
-uniques par mode · QCM ≥ 2 options · packs couple-only non pollués · **aucune**
-2ᵉ personne du singulier (texte **et** options).
+`packs.test.js` garantit alors : 105 amis/pack (≥ 30 par type) · ids uniques ·
+libellés uniques par mode · QCM ≥ 2 options · packs couple-only non pollués ·
+**aucune** 2ᵉ personne du singulier (texte **et** options).
 
-### 10.2 Relecture humaine (une passe par question)
+### 11.2 Relecture humaine (une passe par question)
 
 Pour **chaque** question générée, répondre OUI à tout :
 
@@ -247,9 +306,12 @@ Pour **chaque** question générée, répondre OUI à tout :
       **sujet** ; `on` à la place.
 - [ ] **Accord (§5)** — chaque option se lit correctement après l'amorce.
 - [ ] **Audience (§6)** — `'all'` **seulement** si vraiment neutre ; sinon
-      couple. Triplets `who/mcq/text` équilibrés préservés.
+      couple. Total 105/pack et plancher de 30/type préservés.
 - [ ] **Format (§7)** — type respecté ; `text` réellement convergent et court.
 - [ ] **Unicité (§8)** — pas de quasi-doublon dans le pack.
+- [ ] **Who déguisé (§10)** — un `mcq`/`text` de goût **personnel** dont les
+      options forment déjà « A / B / Les deux / Aucun (ou Ça dépend) » doit
+      devenir un `who` (jugement comparatif), pas rester un `mcq`.
 - [ ] **Convergence (§9)** — la question n'est pas une simple **habitude
       individuelle** : il existe une raison (référent partagé, consensus, goût)
       pour que deux joueurs en phase répondent pareil.
@@ -257,7 +319,7 @@ Pour **chaque** question générée, répondre OUI à tout :
       « en phase » (puis, en modes trio/équipes, de **trois/quatre**), ils
       donnent spontanément la **même** réponse. Sinon, reformuler.
 
-### 10.3 Vérification e2e (optionnelle, sur gros lots)
+### 11.3 Vérification e2e (optionnelle, sur gros lots)
 
 Émulateurs + partie de bout en bout (couple **et** amis), pour confirmer que le
 filtrage `audience` et le décompte du salon (7 en couple/équipes, 9 en trio)

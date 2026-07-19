@@ -23,10 +23,20 @@ describe('friendsCount / totalQuestions', () => {
 })
 
 describe('équilibre du corpus « amis »', () => {
-  it('chaque pack offre exactement 35 questions amis par type (who / mcq / text)', () => {
+  // Le total (105) reste fixe, mais la répartition par type n'est plus figée
+  // à 35 pile : reconvertir un mcq de goût individuel en « qui de nous » (la
+  // seule formulation qui teste vraiment la connaissance de l'autre plutôt
+  // que la coïncidence de goûts, cf. docs/redaction-questions.md §9bis) fait
+  // naturellement pencher la balance vers `who`. On garde un plancher par
+  // type pour éviter qu'un pack devienne mono-type.
+  it('chaque pack offre 105 questions amis (≥ 30 par type who / mcq / text)', () => {
     for (const p of PACKS) {
       const amis = p.questions.filter((q) => questionAllowed(q, 'amis'))
-      expect(typeCounts(amis), `pack ${p.id}`).toEqual({ who: 35, mcq: 35, text: 35 })
+      const counts = typeCounts(amis)
+      expect(counts.who + counts.mcq + counts.text, `pack ${p.id} total`).toBe(105)
+      expect(counts.who, `pack ${p.id} who`).toBeGreaterThanOrEqual(30)
+      expect(counts.mcq, `pack ${p.id} mcq`).toBeGreaterThanOrEqual(30)
+      expect(counts.text, `pack ${p.id} text`).toBeGreaterThanOrEqual(30)
     }
   })
   it('les ids sont uniques au sein de chaque pack', () => {

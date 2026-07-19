@@ -25,12 +25,8 @@ export default {
     {
       id: 'plage-montagne',
       audience: 'all',
-      type: 'mcq',
-      text: 'Pour s’évader, on choisit…',
-      options: [
-        { id: 'plage', label: '🏖️ La plage' },
-        { id: 'montagne', label: '⛰️ La montagne' },
-      ],
+      type: 'who',
+      text: 'Qui préfère la montagne à la plage ?',
     },
     {
       id: 'repas-parfait',
@@ -119,14 +115,8 @@ export default {
     {
       id: 'petit-dej',
       audience: 'all',
-      type: 'mcq',
-      text: 'Au petit-déj, on est plutôt…',
-      options: [
-        { id: 'sucre', label: 'Sucré' },
-        { id: 'sale', label: 'Salé' },
-        { id: 'les-deux', label: 'Les deux !' },
-        { id: 'aucun', label: 'On saute le petit-déj' },
-      ],
+      type: 'who',
+      text: 'Qui est plutôt sucré au petit-déj ?',
     },
     {
       id: 'destination-reve',
@@ -193,14 +183,8 @@ export default {
     {
       id: 'animal-prefere',
       audience: 'all',
-      type: 'mcq',
-      text: 'Team…',
-      options: [
-        { id: 'chien', label: '🐶 Chien' },
-        { id: 'chat', label: '🐱 Chat' },
-        { id: 'deux', label: 'Les deux' },
-        { id: 'aucun', label: 'Aucun' },
-      ],
+      type: 'who',
+      text: 'Qui est plutôt Team Chien ?',
     },
     {
       id: 'saison-preferee',
@@ -251,14 +235,8 @@ export default {
     {
       id: 'fromage-dessert',
       audience: 'all',
-      type: 'mcq',
-      text: 'À la fin du repas ?',
-      options: [
-        { id: 'fromage', label: '🧀 Fromage' },
-        { id: 'dessert', label: '🍰 Dessert' },
-        { id: 'deux', label: 'Les deux' },
-        { id: 'rien', label: 'Rien' },
-      ],
+      type: 'who',
+      text: 'Qui craque plutôt pour le fromage en fin de repas ?',
     },
     {
       id: 'boisson-matin',
@@ -322,14 +300,8 @@ export default {
     {
       id: 'matin-soir',
       audience: 'all',
-      type: 'mcq',
-      text: 'On est plutôt…',
-      options: [
-        { id: 'matin', label: 'Du matin' },
-        { id: 'soir', label: 'Du soir' },
-        { id: 'ni', label: 'Ni l’un ni l’autre' },
-        { id: 'depend', label: 'Ça dépend' },
-      ],
+      type: 'who',
+      text: 'Qui est plutôt du matin ?',
     },
     {
       id: 'serie-boucle',
