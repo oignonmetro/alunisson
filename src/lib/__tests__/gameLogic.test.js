@@ -7,6 +7,8 @@ import {
   computeTrioConsensus,
   trioGuessers,
   buildTrioSequence,
+  buildDirectedRounds,
+  buildCoupleSequence,
   allAnswered,
   isTeamCounted,
   isTeamPartial,
@@ -16,6 +18,7 @@ import {
   computeResults,
   buildTeamsSequence,
   slotResponder,
+  DIRECTED_ROUNDS,
 } from '../gameLogic.js'
 
 const packsById = {
@@ -288,17 +291,57 @@ describe('slotResponder', () => {
   })
 })
 
+describe('buildDirectedRounds', () => {
+  const portraitPack = { id: 'portrait', questions: Array.from({ length: 6 }, (_, i) => ({ id: 'pt' + i, type: 'text', text: 'Q' + i })) }
+  it('en couple (1 équipe), désigne une cible parmi les 2 membres, alternée d’une manche à l’autre', () => {
+    const duo = [{ id: 'duo', uids: ['A', 'B'] }]
+    const rounds = buildDirectedRounds(portraitPack, duo, 2, () => 0)
+    expect(rounds).toHaveLength(2)
+    expect(rounds.every((r) => r.kind === 'directed')).toBe(true)
+    expect(rounds.map((r) => r.targets.duo)).toEqual(['A', 'B']) // alternance k%2
+  })
+  it('en équipes, désigne une cible indépendante par équipe', () => {
+    const teams = [{ id: 'A', uids: ['A1', 'A2'] }, { id: 'B', uids: ['B1', 'B2'] }]
+    const rounds = buildDirectedRounds(portraitPack, teams, 2, () => 0)
+    expect(rounds).toHaveLength(2)
+    expect(rounds.map((r) => r.targets.A)).toEqual(['A1', 'A2'])
+    expect(rounds.map((r) => r.targets.B)).toEqual(['B1', 'B2'])
+  })
+  it('plafonne au nombre de questions disponibles dans le pack', () => {
+    const smallPack = { id: 'portrait', questions: [{ id: 'x', type: 'text', text: 'X' }] }
+    const duo = [{ id: 'duo', uids: ['A', 'B'] }]
+    expect(buildDirectedRounds(smallPack, duo, 2)).toHaveLength(1)
+  })
+})
+
+describe('buildCoupleSequence', () => {
+  const packs = { p: { questions: Array.from({ length: 10 }, (_, i) => ({ id: 'q' + i, type: 'text', text: 'Q' + i })) } }
+  const portraitPack = { id: 'portrait', questions: Array.from({ length: 6 }, (_, i) => ({ id: 'pt' + i, type: 'text', text: 'PT' + i })) }
+  const duo = [{ id: 'duo', uids: ['A', 'B'] }]
+  it('produit 7 manches : (7 - DIRECTED_ROUNDS) standard + DIRECTED_ROUNDS dirigées', () => {
+    const seq = buildCoupleSequence(['p'], packs, portraitPack, duo, () => 0)
+    expect(seq).toHaveLength(7)
+    const std = seq.filter((r) => r.kind === 'standard')
+    const directed = seq.filter((r) => r.kind === 'directed')
+    expect(std).toHaveLength(7 - DIRECTED_ROUNDS)
+    expect(directed).toHaveLength(DIRECTED_ROUNDS)
+  })
+})
+
 describe('buildTeamsSequence', () => {
   const bigPack = { big: { questions: Array.from({ length: 10 }, (_, i) => ({ id: 'q' + i, type: 'text', text: 'Q' + i })) } }
+  const portraitPack = { id: 'portrait', questions: Array.from({ length: 6 }, (_, i) => ({ id: 'pt' + i, type: 'text', text: 'PT' + i })) }
   const teams = [{ id: 'A', uids: ['A1', 'A2'] }, { id: 'B', uids: ['B1', 'B2'] }]
   const prompts = { A1: 'qA1', A2: 'qA2', B1: 'qB1', B2: 'qB2' }
-  it('produit 5 manches standard + 2 manches perso, questions adverses bien orientées', () => {
-    const seq = buildTeamsSequence(['big'], bigPack, prompts, teams, () => 0)
+  it('produit 3 manches standard + 2 manches perso + 2 manches dirigées, questions adverses bien orientées', () => {
+    const seq = buildTeamsSequence(['big'], bigPack, prompts, teams, portraitPack, () => 0)
     expect(seq).toHaveLength(7)
     const std = seq.filter((r) => r.kind === 'standard')
     const custom = seq.filter((r) => r.kind === 'custom')
-    expect(std).toHaveLength(5)
+    const directed = seq.filter((r) => r.kind === 'directed')
+    expect(std).toHaveLength(3)
     expect(custom).toHaveLength(2)
+    expect(directed).toHaveLength(2)
     // slot A (cible A) vient des joueurs de B ; slot B vient des joueurs de A
     expect(custom.map((r) => r.slots.A.text).sort()).toEqual(['qB1', 'qB2'])
     expect(custom.map((r) => r.slots.B.text).sort()).toEqual(['qA1', 'qA2'])
@@ -382,6 +425,58 @@ describe('computeResults — trio', () => {
     expect(res.details[0].matched).toBe(true)
     expect(res.details[1].matched).toBe(false)
     expect(res.details[2].consensus).toBe(null) // pas de consensus
+  })
+})
+
+describe('computeResults — directed (couple)', () => {
+  const base = {
+    players: { A: { joinedAt: 1 }, B: { joinedAt: 2 } },
+    questions: [
+      { kind: 'directed', q: { id: 'portrait:pt1', type: 'text' }, targets: { duo: 'A' } }, // B devine A
+    ],
+  }
+  it('bien deviné : la cible et son binôme marquent les points de la question', () => {
+    const game = { ...base, rounds: {
+      0: { answers: { A: { value: 'chat', submitted: true } }, guesses: { B: { value: 'Chat', submitted: true } } },
+    } }
+    const res = computeResults(game)
+    expect(res.teams[0].points).toBe(5) // text = 5 pts
+    expect(res.teams[0].matchCount).toBe(1)
+    expect(res.details[0].perTeam.duo.target).toBe('A')
+    expect(res.details[0].perTeam.duo.guesser).toBe('B')
+    expect(res.details[0].perTeam.duo.matched).toBe(true)
+  })
+  it('raté : devinette différente de la vraie réponse', () => {
+    const game = { ...base, rounds: {
+      0: { answers: { A: { value: 'chat', submitted: true } }, guesses: { B: { value: 'chien', submitted: true } } },
+    } }
+    const res = computeResults(game)
+    expect(res.teams[0].points).toBe(0)
+    expect(res.details[0].perTeam.duo.matched).toBe(false)
+  })
+})
+
+describe('computeResults — directed (équipes, cibles indépendantes par équipe)', () => {
+  const base = {
+    players: {
+      A1: { joinedAt: 1, team: 'A' }, A2: { joinedAt: 3, team: 'A' },
+      B1: { joinedAt: 2, team: 'B' }, B2: { joinedAt: 4, team: 'B' },
+    },
+    questions: [
+      { kind: 'directed', q: { id: 'portrait:pt1', type: 'mcq' }, targets: { A: 'A1', B: 'B2' } },
+    ],
+  }
+  it('chaque équipe est jugée sur sa propre paire cible/devineur', () => {
+    const game = { ...base, rounds: {
+      0: {
+        answers: { A1: { value: 'x', submitted: true }, B2: { value: 'y', submitted: true } },
+        guesses: { A2: { value: 'x', submitted: true }, B1: { value: 'z', submitted: true } },
+      },
+    } }
+    const res = computeResults(game)
+    expect(res.teams.find((t) => t.id === 'A').points).toBe(2) // mcq = 2 pts, A2 a deviné juste
+    expect(res.teams.find((t) => t.id === 'B').points).toBe(0) // B1 a raté
+    expect(res.winnerTeamId).toBe('A')
   })
 })
 

@@ -89,6 +89,8 @@ export default function Reveal({ uid, game }) {
         <TrioReveal uid={uid} data={data} detail={detail} />
       ) : desc.kind === 'custom' ? (
         <CustomReveal data={data} detail={detail} />
+      ) : desc.kind === 'directed' ? (
+        <DirectedReveal uid={uid} data={data} teams={teams} detail={detail} />
       ) : (
         <StandardReveal
           uid={uid} data={data} question={desc.q} round={round} teams={teams} detail={detail}
@@ -154,6 +156,40 @@ function StandardReveal({ uid, data, question, round, teams, detail, mode, myOve
                 {isMine && myOverride && <p className="muted tiny center">En attente de la validation de ton binôme…</p>}
               </div>
             )}
+          </div>
+        )
+      })}
+    </>
+  )
+}
+
+/* ---------- Révélation dirigée (pack Portrait : cible vs devinette du binôme) ---------- */
+function DirectedReveal({ uid, data, teams, detail }) {
+  return (
+    <>
+      <div className="q-count muted tiny">Manche spéciale · portrait ({detail.question.type === 'text' ? 5 : 2} pts)</div>
+      <div className="card question-card">
+        <h2 className="q-text small">{detail.question.text}</h2>
+      </div>
+      {teams.map((team) => {
+        const pt = detail.perTeam?.[team.id] || {}
+        return (
+          <div key={team.id} className="team-result" style={teams.length > 1 ? { borderColor: team.color } : undefined}>
+            {teams.length > 1 && <div className="team-head" style={{ color: team.color }}>{team.name}</div>}
+            <div className={'verdict small ' + (pt.matched ? 'match' : 'nomatch')}>
+              {pt.matched ? '✅ Bien deviné !' : '❌ Raté'}
+              <span className="verdict-points"> +{pt.points || 0}</span>
+            </div>
+            <div className="answers">
+              <div className="answer-row" style={{ borderColor: 'var(--primary)' }}>
+                <span className="answer-name">Vraie réponse de {playerName(data, pt.target)}{pt.target === uid ? ' (toi)' : ''}</span>
+                <span className="answer-value">{labelForValue(detail.question, data, pt.targetValue)}</span>
+              </div>
+              <div className="answer-row">
+                <span className="answer-name">Devinette de {playerName(data, pt.guesser)}{pt.guesser === uid ? ' (toi)' : ''}</span>
+                <span className="answer-value">{labelForValue(detail.question, data, pt.guessValue)}</span>
+              </div>
+            </div>
           </div>
         )
       })}

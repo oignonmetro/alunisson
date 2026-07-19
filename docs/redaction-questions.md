@@ -282,9 +282,47 @@ future, plus coûteuse, non engagée à ce stade.
 
 ---
 
-## 11. Procédure de test
+## 11. Pack Portrait — contenu des manches dirigées
 
-### 11.1 Barrière automatique (obligatoire)
+**[Règles spécifiques, différentes des 4 packs classiques]**
+
+Le pack `src/data/packs/portrait.js` alimente la **manche dirigée** (§10) :
+une cible désignée répond en privé, son binôme/coéquipier devine. Ce n'est
+**pas** un pack sélectionnable au salon (absent de `PACKS`, exporté à part
+comme `PORTRAIT_PACK`, inclus automatiquement dans chaque partie couple/
+équipes — voir `buildDirectedRounds` dans `gameLogic.js`). Sa rédaction suit
+des règles différentes :
+
+- **Pas de type `who`.** La question porte sur **une seule** personne (la
+  cible), pas une comparaison entre joueurs — `who` n'a pas de sens ici.
+  Seuls `mcq` et `text`.
+- **Pas de champ `audience`.** Le pack est universel, jamais filtré par le
+  public (couple/amis) — les traits/habitudes personnels qu'il couvre ne
+  présupposent aucun cadre relationnel particulier.
+- **Pas besoin de « référent partagé » (§2).** Contrairement aux 4 packs
+  classiques, la question porte *explicitement* sur le vécu propre à la
+  cible ; c'est la **mécanique** (cible + devineur, pas la coïncidence de
+  deux avis indépendants) qui rend la question testable par la connaissance,
+  pas sa formulation.
+- **Contenu recherché** : des traits, habitudes ou petits secrets qu'un
+  proche qui **connaît bien** la cible peut deviner — quirks, petites
+  manies, réactions typiques, goûts assumés ou secrets. Ex. « L'excuse la
+  plus utilisée pour éviter une corvée ? », « Le talent caché que peu de
+  gens connaissent ? ». Éviter les questions à réponse trop ouverte/vague
+  (impossibles à deviner même en connaissant bien la cible) et les
+  questions factuelles vérifiables plutôt que devinables.
+- **Pas de contrainte de volume fixe** (le pack n'est pas soumis au
+  triplet 105/≥30 par type des packs classiques — c'est un pool à part,
+  couvert par ses propres tests dans `packs.test.js`).
+
+Les règles communes restent valables : pas de 2ᵉ personne du singulier (§3),
+libellés/ids uniques (§8), ≥ 2 options par `mcq` (§7).
+
+---
+
+## 12. Procédure de test
+
+### 12.1 Barrière automatique (obligatoire)
 
 ```bash
 npm run test    # vitest : structure, compteurs, unicité, 2e personne
@@ -295,7 +333,7 @@ npm run build   # vérifie que les packs se compilent
 libellés uniques par mode · QCM ≥ 2 options · packs couple-only non pollués ·
 **aucune** 2ᵉ personne du singulier (texte **et** options).
 
-### 11.2 Relecture humaine (une passe par question)
+### 12.2 Relecture humaine (une passe par question)
 
 Pour **chaque** question générée, répondre OUI à tout :
 
@@ -319,7 +357,7 @@ Pour **chaque** question générée, répondre OUI à tout :
       « en phase » (puis, en modes trio/équipes, de **trois/quatre**), ils
       donnent spontanément la **même** réponse. Sinon, reformuler.
 
-### 11.3 Vérification e2e (optionnelle, sur gros lots)
+### 12.3 Vérification e2e (optionnelle, sur gros lots)
 
 Émulateurs + partie de bout en bout (couple **et** amis), pour confirmer que le
 filtrage `audience` et le décompte du salon (7 en couple/équipes, 9 en trio)

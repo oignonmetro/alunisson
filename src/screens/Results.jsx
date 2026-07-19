@@ -67,6 +67,28 @@ export default function Results({ uid, game }) {
                 </div>
               </div>
             </div>
+          ) : d.kind === 'directed' ? (
+            <div key={d.index} className="recap-row">
+              <div className="recap-q">🕵️ {d.question.text}</div>
+              <div className="recap-teams">
+                {teams.map((team) => {
+                  const pt = d.perTeam?.[team.id] || {}
+                  return (
+                    <div key={team.id} className={'recap-team ' + (pt.matched ? 'ok' : 'ko')}>
+                      <div className="recap-team-head">
+                        <span className="recap-mark">{pt.matched ? '✅' : '❌'}</span>
+                        {isTeams && <span style={{ color: TEAM_META[team.id].color }}>{team.name}</span>}
+                        <span className="recap-points">{pt.matched ? `+${pt.points}` : '+0'}</span>
+                      </div>
+                      <div className="recap-answers">
+                        <span className="recap-a"><b>{playerName(data, pt.target)} (vraie réponse) :</b> {labelForValue(d.question, data, pt.targetValue)}</span>
+                        <span className="recap-a"><b>{playerName(data, pt.guesser)} (devinette) :</b> {labelForValue(d.question, data, pt.guessValue)}</span>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
           ) : d.kind === 'custom' ? (
             <div key={d.index} className="recap-row">
               <div className="recap-q">Manche spéciale — questions personnalisées (5 pts)</div>

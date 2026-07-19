@@ -21,6 +21,7 @@ import {
 import { db } from '../firebase.js'
 import { generateCode, isValidCode, sanitizeCode } from '../lib/gameCode.js'
 import {
+  buildCoupleSequence,
   buildQuestions,
   buildTeamsSequence,
   buildTrioSequence,
@@ -36,7 +37,7 @@ import {
   TRIO_QUESTIONS,
 } from '../lib/gameLogic.js'
 import { isMatch } from '../lib/matching.js'
-import { PACKS_BY_ID } from '../data/packs/index.js'
+import { PACKS_BY_ID, PORTRAIT_PACK } from '../data/packs/index.js'
 
 const gameDoc = (code) => doc(db, 'games', code)
 
@@ -307,7 +308,8 @@ export function useGame(uid) {
           })
           return
         }
-        const questions = buildQuestions(packs, QUESTIONS_PER_GAME, PACKS_BY_ID, undefined, audience).map((q) => ({ kind: 'standard', q }))
+        const duo = [{ id: 'duo', uids: orderedUids(data) }]
+        const questions = buildCoupleSequence(packs, PACKS_BY_ID, PORTRAIT_PACK, duo, undefined, audience)
         if (questions.length === 0) throw new Error(noQuestions)
         tx.update(ref, {
           status: 'playing',
@@ -338,7 +340,7 @@ export function useGame(uid) {
           tx.update(ref, { [`customPrompts.${uid}`]: (text || '').trim() })
           return
         }
-        const questions = buildTeamsSequence(data.config.packs, PACKS_BY_ID, prompts, gameTeams(data), undefined, data.config.audience || 'couple')
+        const questions = buildTeamsSequence(data.config.packs, PACKS_BY_ID, prompts, gameTeams(data), PORTRAIT_PACK, undefined, data.config.audience || 'couple')
         tx.update(ref, {
           customPrompts: prompts,
           questions,
@@ -409,6 +411,9 @@ export function useGame(uid) {
   //  - manche perso : on répond un slot précis ; révélation quand les deux
   //    slots sont décidés et que leurs équipes-répondantes ont soumis.
   //  - manche trio : les 2 devineurs proposent ; révélation au consensus.
+  //  - manche dirigée (pack Portrait) : la cible répond en privé, son
+  //    binôme/coéquipier devine ensuite ; révélation quand chaque équipe a
+  //    ses deux réponses (pas de consensus à atteindre, un seul devineur).
   const submitAnswer = useCallback(
     async (value, slotKey) => {
       await runTransaction(db, async (tx) => {
@@ -432,6 +437,42 @@ export function useGame(uid) {
             round.revealed = true
             round.consensus = consensus.value
             round.matched = isMatch(desc.q, consensus.value, round.targetAnswer?.value)
+          }
+          tx.update(ref, { [`rounds.${idx}`]: round })
+          return
+        }
+
+        if (desc?.kind === 'directed') {
+          const myTeam = teams.find((t) => t.uids.includes(uid))
+          if (!myTeam) return
+          const targetUid = desc.targets?.[myTeam.id]
+          const guesserUid = myTeam.uids.find((u) => u !== targetUid)
+          const rounds = data.rounds || {}
+          const round = { kind: 'directed', answers: {}, guesses: {}, revealed: false, teamMatch: {}, ...(rounds[idx] || {}) }
+          if (uid === targetUid) {
+            if (round.answers[uid]?.submitted) return // déjà répondu
+            round.answers = { ...round.answers, [uid]: { value, submitted: true } }
+          } else if (uid === guesserUid) {
+            if (!round.answers[targetUid]?.submitted) return // la cible n'a pas encore répondu
+            if (round.guesses[uid]?.submitted) return // déjà deviné
+            round.guesses = { ...round.guesses, [uid]: { value, submitted: true } }
+          } else {
+            return
+          }
+          // Révélation quand chaque équipe a une cible ET un devineur soumis.
+          const allTeamsDone = teams.every((t) => {
+            const tUid = desc.targets?.[t.id]
+            const gUid = t.uids.find((u) => u !== tUid)
+            return round.answers[tUid]?.submitted && round.guesses[gUid]?.submitted
+          })
+          if (allTeamsDone) {
+            round.revealed = true
+            round.teamMatch = {}
+            for (const t of teams) {
+              const tUid = desc.targets?.[t.id]
+              const gUid = t.uids.find((u) => u !== tUid)
+              round.teamMatch[t.id] = isMatch(desc.q, round.answers[tUid]?.value, round.guesses[gUid]?.value)
+            }
           }
           tx.update(ref, { [`rounds.${idx}`]: round })
           return

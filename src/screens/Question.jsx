@@ -14,6 +14,9 @@ export default function Question({ uid, game }) {
   if (desc?.kind === 'trio') {
     return <TrioGuessQuestion uid={uid} game={game} desc={desc} idx={idx} />
   }
+  if (desc?.kind === 'directed') {
+    return <DirectedQuestion uid={uid} game={game} desc={desc} idx={idx} />
+  }
   return <StandardQuestion uid={uid} game={game} desc={desc} idx={idx} />
 }
 
@@ -265,6 +268,112 @@ function TrioGuessQuestion({ uid, game, desc, idx }) {
             <p className="muted tiny center">Vous n’avez pas encore la même réponse — mettez-vous d’accord 🤝</p>
           )}
           <p className="muted tiny center">Il faut répondre <b>la même chose</b> tous les deux pour valider.</p>
+        </div>
+      )}
+
+      {error && <p className="error">{error.message}</p>}
+    </div>
+  )
+}
+
+/* ---------- Manche dirigée (pack Portrait) : la cible répond en privé, son binôme/coéquipier devine ---------- */
+function DirectedQuestion({ uid, game, desc, idx }) {
+  const { game: data, submitAnswer, leaveGame, error, setError } = game
+  const total = data.questions.length
+  const question = desc.q
+  const round = data.rounds?.[idx]
+  const myTeam = teamOfPlayer(data, uid)
+  const targetUid = myTeam ? desc.targets?.[myTeam.id] : null
+  const guesserUid = myTeam ? myTeam.uids.find((u) => u !== targetUid) : null
+  const isTarget = uid === targetUid
+  const targetAnswered = Boolean(round?.answers?.[targetUid]?.submitted)
+  const alreadyGuessed = Boolean(round?.guesses?.[uid]?.submitted)
+
+  const [choice, setChoice] = useState('')
+  const [text, setText] = useState('')
+  const [busy, setBusy] = useState(false)
+
+  const isText = question.type === 'text'
+  const options = optionsFor(question, data)
+  const canSubmit = isText ? text.trim().length > 0 : choice !== ''
+  const points = isText ? 5 : 2
+
+  async function handleSubmit() {
+    if (!canSubmit) return
+    setBusy(true)
+    setError(null)
+    try { await submitAnswer(isText ? text.trim() : choice) } catch (e) { setError(e) } finally { setBusy(false) }
+  }
+
+  return (
+    <div className="screen">
+      <Topbar leaveGame={leaveGame} idx={idx} total={total} />
+
+      <div className="card question-card custom">
+        <div className="q-pack pts5">
+          {isTarget
+            ? `🕵️ On te connaît si bien ? · ${points} pts`
+            : `🕵️ Devinez la réponse de ${playerName(data, targetUid)} · ${points} pts`}
+        </div>
+        <h2 className="q-text">{question.text}</h2>
+      </div>
+
+      {isTarget ? (
+        targetAnswered ? (
+          <div className="waiting stack center">
+            <p>Réponse envoyée ✅</p>
+            <p className="muted">{playerName(data, guesserUid)} essaie de deviner…</p>
+          </div>
+        ) : (
+          <div className="stack">
+            {isText ? (
+              <input
+                className="text-answer" autoFocus value={text} maxLength={60} placeholder="Ta vraie réponse…"
+                onChange={(e) => setText(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && canSubmit && handleSubmit()}
+              />
+            ) : (
+              <div className="options">
+                {options.map((o) => (
+                  <button key={o.id} className={'option' + (choice === o.id ? ' selected' : '')} onClick={() => setChoice(o.id)}>
+                    {o.label}
+                  </button>
+                ))}
+              </div>
+            )}
+            <button className="btn btn-primary" disabled={!canSubmit || busy} onClick={handleSubmit}>
+              {busy ? 'Envoi…' : 'Valider ma vraie réponse'}
+            </button>
+            <p className="muted tiny center">🤫 Réponds pour de vrai — {playerName(data, guesserUid)} va essayer de deviner.</p>
+          </div>
+        )
+      ) : !targetAnswered ? (
+        <div className="waiting stack center">
+          <p className="muted">En attente que {playerName(data, targetUid)} réponde en privé…</p>
+        </div>
+      ) : alreadyGuessed ? (
+        <Waiting />
+      ) : (
+        <div className="stack">
+          {isText ? (
+            <input
+              className="text-answer" autoFocus value={text} maxLength={60} placeholder="Ta devinette…"
+              onChange={(e) => setText(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && canSubmit && handleSubmit()}
+            />
+          ) : (
+            <div className="options">
+              {options.map((o) => (
+                <button key={o.id} className={'option' + (choice === o.id ? ' selected' : '')} onClick={() => setChoice(o.id)}>
+                  {o.label}
+                </button>
+              ))}
+            </div>
+          )}
+          <button className="btn btn-primary" disabled={!canSubmit || busy} onClick={handleSubmit}>
+            {busy ? 'Envoi…' : 'Valider ma devinette'}
+          </button>
+          <p className="muted tiny center">Devine ce que {playerName(data, targetUid)} a vraiment répondu.</p>
         </div>
       )}
 

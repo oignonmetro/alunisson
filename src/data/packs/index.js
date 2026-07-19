@@ -5,9 +5,18 @@ import gouts from './gouts.js'
 import souvenirs from './souvenirs.js'
 import quotidien from './quotidien.js'
 import complicite from './complicite.js'
+import portrait from './portrait.js'
 
 /** Liste ordonnée des packs (pour l'affichage). */
 export const PACKS = [gouts, souvenirs, quotidien, complicite]
+
+/**
+ * Pack « Portrait », dédié aux manches dirigées (cible + devineur, voir
+ * `buildDirectedRounds` dans gameLogic.js). Volontairement PAS dans `PACKS` :
+ * il n'est pas sélectionnable au salon, il est inclus automatiquement dans
+ * chaque partie couple/équipes, indépendamment des packs choisis par l'hôte.
+ */
+export const PORTRAIT_PACK = portrait
 
 /** Packs indexés par id (pour la construction d'une partie). */
 export const PACKS_BY_ID = Object.fromEntries(PACKS.map((p) => [p.id, p]))

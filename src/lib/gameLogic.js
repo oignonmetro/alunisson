@@ -10,8 +10,16 @@ export const QUESTIONS_PER_GAME = 7
 /** Mode trio (3 joueurs) : 9 questions, 3 par joueur (chacun est « cible » 3 fois). */
 export const TRIO_QUESTIONS = 9
 
-/** Mode équipes : nombre de manches communes (packs) et de manches perso. */
-export const TEAMS_STANDARD_ROUNDS = 5
+/**
+ * Nombre de manches « dirigées » (pack Portrait) par partie en couple et en
+ * équipes : une cible répond en privé, son binôme/coéquipier devine — voir
+ * `buildDirectedRounds`. Toujours incluses, indépendamment des packs choisis
+ * par l'hôte (docs/redaction-questions.md §10).
+ */
+export const DIRECTED_ROUNDS = 2
+
+/** Mode équipes : nombre de manches communes (packs), perso et dirigées. */
+export const TEAMS_STANDARD_ROUNDS = 3
 export const TEAMS_CUSTOM_ROUNDS = 2
 
 /** Points d'une question personnalisée réussie (mode équipes). */
@@ -86,16 +94,67 @@ export function buildQuestions(selectedPackIds, count, packsById, rng = Math.ran
 }
 
 /**
- * Construit la séquence de 7 manches du mode équipes : 5 manches communes
- * (packs) + 2 manches personnalisées. Chaque manche perso contient une
- * question par équipe (rédigée par l'équipe adverse).
+ * Construit les manches « dirigées » (pack Portrait) : pour chaque équipe
+ * (au sens `gameTeams` — le duo en couple, A/B en équipes), une manche
+ * désigne UN de ses membres comme cible (qui répondra en privé, vraiment
+ * pour lui-même) et l'autre comme devineur. La rotation (`k % 2`) répartit
+ * équitablement qui est cible d'une manche dirigée à l'autre.
+ *
+ * Contrairement au mode trio, il n'y a qu'un seul devineur par équipe : pas
+ * de consensus à atteindre, le match se fait directement entre la réponse
+ * réelle de la cible et la devinette (voir `submitAnswer` / `computeResults`).
+ * @param {{id:string, questions:any[]}} portraitPack
+ * @param {{id:string, uids:string[]}[]} teams
+ * @param {number} [count]
+ * @param {() => number} [rng]
+ * @returns {{kind:'directed', q:any, targets:Record<string,string>}[]}
+ */
+export function buildDirectedRounds(portraitPack, teams, count = DIRECTED_ROUNDS, rng = Math.random) {
+  const pool = (portraitPack?.questions || []).map((q) => ({
+    ...q, packId: portraitPack.id, id: `${portraitPack.id}:${q.id}`,
+  }))
+  const shuffled = shuffle(pool, rng)
+  const n = Math.max(0, Math.min(count, shuffled.length))
+  return shuffled.slice(0, n).map((q, k) => ({
+    kind: 'directed',
+    q,
+    targets: Object.fromEntries(
+      (teams || []).map((t) => [t.id, t.uids[k % Math.max(1, t.uids.length)] ?? null]),
+    ),
+  }))
+}
+
+/**
+ * Construit la séquence de 7 manches du mode couple : manches standard
+ * (packs choisis) + manches dirigées (pack Portrait, toujours incluses).
+ * @param {string[]} packs
+ * @param {Record<string, {questions:any[]}>} packsById
+ * @param {{id:string, questions:any[]}} portraitPack
+ * @param {{id:string, uids:string[]}[]} teams  une seule équipe (le duo)
+ * @param {() => number} [rng]
+ * @param {'couple'|'amis'} [audience]
+ */
+export function buildCoupleSequence(packs, packsById, portraitPack, teams, rng = Math.random, audience = 'couple') {
+  const standardCount = QUESTIONS_PER_GAME - DIRECTED_ROUNDS
+  const std = buildQuestions(packs, standardCount, packsById, rng, audience).map((q) => ({ kind: 'standard', q }))
+  const directed = buildDirectedRounds(portraitPack, teams, DIRECTED_ROUNDS, rng)
+  return shuffle([...std, ...directed], rng)
+}
+
+/**
+ * Construit la séquence de 7 manches du mode équipes : manches communes
+ * (packs) + manches personnalisées (5 pts) + manches dirigées (Portrait).
+ * Chaque manche perso contient une question par équipe (rédigée par
+ * l'équipe adverse) ; chaque manche dirigée désigne un membre de chaque
+ * équipe comme cible, son coéquipier devine.
  * @param {string[]} packs
  * @param {Record<string, {questions:any[]}>} packsById
  * @param {Record<string,string>} customPrompts  question écrite par chaque uid
  * @param {{id:string, uids:string[]}[]} teams
+ * @param {{id:string, questions:any[]}} portraitPack
  * @param {() => number} [rng]
  */
-export function buildTeamsSequence(packs, packsById, customPrompts, teams, rng = Math.random, audience = 'couple') {
+export function buildTeamsSequence(packs, packsById, customPrompts, teams, portraitPack, rng = Math.random, audience = 'couple') {
   const std = buildQuestions(packs, TEAMS_STANDARD_ROUNDS, packsById, rng, audience).map((q) => ({ kind: 'standard', q }))
   const teamA = teams.find((t) => t.id === 'A') || { uids: [] }
   const teamB = teams.find((t) => t.id === 'B') || { uids: [] }
@@ -110,7 +169,8 @@ export function buildTeamsSequence(packs, packsById, customPrompts, teams, rng =
       B: { text: forB[k]?.text || '', author: forB[k]?.author || null, target: 'B' },
     },
   }))
-  return shuffle([...std, ...custom], rng)
+  const directed = buildDirectedRounds(portraitPack, teams, DIRECTED_ROUNDS, rng)
+  return shuffle([...std, ...custom, ...directed], rng)
 }
 
 /**
@@ -355,6 +415,29 @@ export function computeResults(game) {
         targetValue, consensus: consensus.reached ? consensus.value : null,
         guesses: round.guesses || {}, guessers, matched, points: matched ? qp : 0,
       }
+    }
+
+    if (desc.kind === 'directed') {
+      const q = desc.q
+      const qp = pointsForQuestion(q)
+      maxPoints += qp
+      const perTeam = {}
+      teams.forEach((team) => {
+        const targetUid = desc.targets?.[team.id]
+        const guesserUid = team.uids.find((u) => u !== targetUid)
+        const targetValue = round.answers?.[targetUid]?.value
+        const guessValue = round.guesses?.[guesserUid]?.value
+        const matched = targetValue !== undefined && guessValue !== undefined && isMatch(q, targetValue, guessValue)
+        perTeam[team.id] = { target: targetUid, guesser: guesserUid, targetValue, guessValue, matched, points: matched ? qp : 0 }
+        if (matched) {
+          const ti = idxOf[team.id]
+          if (ti != null) {
+            agg[ti].points += qp
+            agg[ti].matchCount += 1
+          }
+        }
+      })
+      return { index: i, kind: 'directed', question: q, targets: desc.targets, perTeam }
     }
 
     // Manche standard (packs)
