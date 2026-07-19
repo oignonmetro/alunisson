@@ -153,19 +153,34 @@ export default function Lobby({ uid, game }) {
 
         <h3 className="card-title">{isHost ? 'Choisir les packs de questions' : 'Packs choisis par l’hôte'}</h3>
         <div className="list">
-          {PACKS.map((p) => {
-            const count = audience === 'amis' ? friendsCount(p) : p.questions.length
-            return (
-              <button
-                key={p.id}
-                className={'list-row' + (isHost ? ' selectable' : '') + (packs.includes(p.id) ? ' selected' : '')}
-                onClick={() => togglePack(p.id)}
-                disabled={isHost && audience === 'amis' && count === 0}
-              >
-                {p.name} <span className="muted">· {count} questions{audience === 'amis' ? ' amis' : ''}</span>
-              </button>
-            )
-          })}
+          {isHost ? (
+            PACKS.map((p) => {
+              const count = audience === 'amis' ? friendsCount(p) : p.questions.length
+              return (
+                <button
+                  key={p.id}
+                  className={'list-row selectable' + (packs.includes(p.id) ? ' selected' : '')}
+                  onClick={() => togglePack(p.id)}
+                  disabled={audience === 'amis' && count === 0}
+                >
+                  {p.name} <span className="muted">· {count} questions{audience === 'amis' ? ' amis' : ''}</span>
+                </button>
+              )
+            })
+          ) : packs.length > 0 ? (
+            packs.map((id) => {
+              const p = PACKS_BY_ID[id]
+              if (!p) return null
+              const count = audience === 'amis' ? friendsCount(p) : p.questions.length
+              return (
+                <div key={p.id} className="list-row selected">
+                  {p.name} <span className="muted">· {count} questions{audience === 'amis' ? ' amis' : ''}</span>
+                </div>
+              )
+            })
+          ) : (
+            <p className="muted center tiny">L’hôte n’a encore choisi aucun pack…</p>
+          )}
         </div>
 
         {packs.length > 0 && available < needed && (
