@@ -181,10 +181,13 @@ input:focus { border-color: var(--primary); }
 .team-tag { font-size: 12px; font-weight: 500; }
 .team-buttons { display: flex; gap: 8px; }
 .team-btn {
-  flex: 1; padding: 12px; border-radius: 12px; font-weight: 500; font-size: 14px;
+  flex: 1; padding: 12px; border-radius: 12px; font-weight: 600; font-size: 14px;
   background: var(--card); border: 1.5px solid var(--card-border); color: var(--text); cursor: pointer;
+  transition: background .15s, border-color .15s, color .15s;
 }
-.team-btn.active { background: rgba(255,255,255,0.06); }
+/* Le fond teinté vient de `style={{ backgroundColor: TEAM_META[t].bg }}` (voir
+   Lobby.jsx) ; cette règle est un repli si jamais un usage omet cette couleur. */
+.team-btn.active { background: rgba(255, 94, 138, 0.14); border-width: 2px; }
 .team-btn:disabled { opacity: 0.4; cursor: not-allowed; }
 
 .scoreboard { display: flex; gap: 12px; }

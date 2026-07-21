@@ -7,12 +7,16 @@ function isTrio(game) {
   return gameMode(game) === 'trio'
 }
 
-/** Métadonnées d'affichage des équipes (mode 4 joueurs). */
+/**
+ * Métadonnées d'affichage des équipes (mode 4 joueurs). `bg` = fond teinté
+ * (même opacité que les lignes de pack sélectionnées) utilisé pour rendre
+ * la sélection d'équipe/public clairement visible, pas juste via la bordure.
+ */
 export const TEAM_META = {
-  A: { name: 'Équipe A', color: '#ff5e8a' },
-  B: { name: 'Équipe B', color: '#a678ff' },
-  duo: { name: 'Vous deux', color: '#ff5e8a' },
-  trio: { name: 'Le trio', color: '#ff5e8a' },
+  A: { name: 'Équipe A', color: '#ff5e8a', bg: 'rgba(255, 94, 138, 0.14)' },
+  B: { name: 'Équipe B', color: '#a678ff', bg: 'rgba(166, 120, 255, 0.14)' },
+  duo: { name: 'Vous deux', color: '#ff5e8a', bg: 'rgba(255, 94, 138, 0.14)' },
+  trio: { name: 'Le trio', color: '#ff5e8a', bg: 'rgba(255, 94, 138, 0.14)' },
 }
 
 /** Liste des uid des joueurs (ordre d'arrivée). */
