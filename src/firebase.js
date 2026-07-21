@@ -6,7 +6,7 @@
 // locaux (aucun compte Firebase requis). Utilisez `npm run dev:emulator`.
 
 import { initializeApp } from 'firebase/app'
-import { getFirestore, connectFirestoreEmulator } from 'firebase/firestore'
+import { initializeFirestore, connectFirestoreEmulator } from 'firebase/firestore'
 import { getAuth, connectAuthEmulator } from 'firebase/auth'
 
 const useEmulator = import.meta.env.VITE_USE_EMULATOR === '1'
@@ -24,7 +24,15 @@ const firebaseConfig = useEmulator
     }
 
 export const app = initializeApp(firebaseConfig)
-export const db = getFirestore(app)
+
+// Force le transport « long-polling » plutôt que le WebChannel streaming par
+// défaut. Sur Safari / iOS, le flux WebChannel se fige souvent après la
+// connexion initiale : les écritures des autres joueurs n'arrivent plus au
+// listener onSnapshot, obligeant à rafraîchir la page pour voir l'écran
+// suivant. L'auto-détection (défaut du SDK v10) ne suffit pas — sa sonde
+// initiale réussit puis le streaming cale ensuite — donc on force. Le
+// surcoût est négligeable pour nos documents de partie minuscules.
+export const db = initializeFirestore(app, { experimentalForceLongPolling: true })
 export const auth = getAuth(app)
 
 if (useEmulator) {
