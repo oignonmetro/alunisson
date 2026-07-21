@@ -114,7 +114,7 @@ export default function Lobby({ uid, game }) {
                   <button
                     key={t}
                     className={'team-btn' + (myTeam === t ? ' active' : '')}
-                    style={myTeam === t ? { borderColor: TEAM_META[t].color, color: TEAM_META[t].color } : undefined}
+                    style={myTeam === t ? { borderColor: TEAM_META[t].color, color: TEAM_META[t].color, backgroundColor: TEAM_META[t].bg } : undefined}
                     disabled={full}
                     onClick={() => handleTeam(t)}
                   >
@@ -137,7 +137,7 @@ export default function Lobby({ uid, game }) {
             <button
               key={a.id}
               className={'team-btn' + (audience === a.id ? ' active' : '')}
-              style={audience === a.id ? { borderColor: 'var(--primary)', color: 'var(--primary)' } : undefined}
+              style={audience === a.id ? { borderColor: 'var(--primary)', color: 'var(--primary)', backgroundColor: 'rgba(255, 94, 138, 0.14)' } : undefined}
               onClick={() => handleAudience(a.id)}
             >
               {a.label}
