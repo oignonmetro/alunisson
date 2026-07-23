@@ -9,6 +9,7 @@
 
 import { useCallback, useEffect, useState } from 'react'
 import {
+  deleteDoc,
   deleteField,
   doc,
   getDoc,
@@ -40,6 +41,38 @@ import { isMatch } from '../lib/matching.js'
 import { PACKS_BY_ID, PORTRAIT_PACK } from '../data/packs/index.js'
 
 const gameDoc = (code) => doc(db, 'games', code)
+
+// `lastActivityAt` est rafraîchi (serverTimestamp) à la création et à chaque
+// mutation : il date la dernière activité d'une partie.
+//
+// Nettoyage des rooms inactives (> 15 min) : Firestore refuse toute requête
+// `list` fondée sur `request.time`, donc on ne peut pas énumérer les parties
+// périmées côté client. À la place, le nettoyage est OPPORTUNISTE : dès qu'un
+// client observe une partie périmée (au fil du `onSnapshot`, ou en tentant de
+// la rejoindre par son code), il la supprime. La règle de sécurité `isStale`
+// (horloge serveur) reste l'autorité : le client ne fait que déclencher la
+// tentative ; une room réellement active ne peut pas être supprimée même en
+// cas de dérive d'horloge côté client. (Une partie totalement abandonnée, sans
+// aucun onglet ouvert pour la revoir, subsiste jusqu'à un balayage serveur —
+// politique TTL Firestore sur `lastActivityAt`, à activer dans la console.)
+const STALE_AFTER_MS = 15 * 60 * 1000
+
+/** Une partie est-elle périmée (dernière activité > 15 min) ? */
+function isStaleGame(data) {
+  const ts = data?.lastActivityAt
+  // serverTimestamp() vaut null dans le snapshot local tant que le serveur n'a
+  // pas confirmé l'écriture : on ne considère jamais un tel doc comme périmé.
+  if (!ts || typeof ts.toMillis !== 'function') return false
+  return ts.toMillis() < Date.now() - STALE_AFTER_MS
+}
+
+/** Supprime une partie périmée (best-effort ; la règle `isStale` tranche). */
+function deleteStaleGame(code) {
+  deleteDoc(gameDoc(code)).catch(() => {
+    // Refus possible (room finalement pas périmée côté serveur, course avec un
+    // autre client…) : sans conséquence, on laisse le prochain snapshot statuer.
+  })
+}
 
 /** Structure par défaut d'une manche perso (2 slots), en fusionnant l'existant. */
 function normalizeCustomRound(round) {
@@ -113,7 +146,12 @@ export function useGame(uid) {
       (snap) => {
         setLoading(false)
         if (snap.exists()) {
-          setGame(snap.data())
+          const data = snap.data()
+          // Room périmée (> 15 min sans activité) : on déclenche sa suppression.
+          // La règle serveur `isStale` valide (ou non) ; si elle valide, un
+          // prochain snapshot « inexistant » nettoiera l'état local ci-dessous.
+          if (isStaleGame(data)) deleteStaleGame(code)
+          setGame(data)
         } else {
           // Room disparue (supprimée, code invalide…) : on nettoie la
           // persistance pour ne pas retenter indéfiniment le même code mort.
@@ -191,6 +229,7 @@ export function useGame(uid) {
         rounds: {},
         matchCount: 0,
         createdAt: serverTimestamp(),
+        lastActivityAt: serverTimestamp(),
       })
       setCode(newCode)
       return newCode
@@ -203,20 +242,33 @@ export function useGame(uid) {
     async (rawCode, name) => {
       if (!uid) throw new Error('Authentification en cours…')
       const c = rawCode
+      let expired = false
       await runTransaction(db, async (tx) => {
         const ref = gameDoc(c)
         const snap = await tx.get(ref)
         if (!snap.exists()) throw new Error('Aucune partie avec ce code.')
         const data = snap.data()
+        // Ne pas rejoindre (ni ranimer) une room périmée : la rejoindre
+        // rafraîchirait `lastActivityAt`. On sort sans écrire, puis on la
+        // supprime hors transaction (une écriture aborterait la suppression).
+        if (isStaleGame(data)) {
+          expired = true
+          return
+        }
         const players = data.players || {}
         if (!players[uid]) {
           if (Object.keys(players).length >= 4) throw new Error('Cette partie est déjà complète (4 joueurs max).')
           if (data.status !== 'lobby') throw new Error('La partie a déjà commencé.')
           tx.update(ref, {
             [`players.${uid}`]: { name: name?.trim() || 'Joueur', isHost: false, connected: true, team: null, joinedAt: Date.now() },
+            lastActivityAt: serverTimestamp(),
           })
         }
       })
+      if (expired) {
+        deleteStaleGame(c)
+        throw new Error('Cette partie a expiré (plus de 15 min d’inactivité).')
+      }
       setCode(c)
     },
     [uid],
@@ -236,7 +288,7 @@ export function useGame(uid) {
           const inTeam = Object.keys(players).filter((u) => u !== uid && players[u].team === team)
           if (inTeam.length >= 2) throw new Error('Cette équipe est déjà complète.')
         }
-        tx.update(ref, { [`players.${uid}.team`]: team })
+        tx.update(ref, { [`players.${uid}.team`]: team, lastActivityAt: serverTimestamp() })
       })
     },
     [code, uid],
@@ -250,7 +302,7 @@ export function useGame(uid) {
     async (packs, audience) => {
       if (!code) return
       try {
-        await updateDoc(gameDoc(code), { 'config.packs': packs, 'config.audience': audience })
+        await updateDoc(gameDoc(code), { 'config.packs': packs, 'config.audience': audience, lastActivityAt: serverTimestamp() })
       } catch {
         // pas bloquant (ex: partie déjà lancée entre-temps)
       }
@@ -292,6 +344,7 @@ export function useGame(uid) {
             questions,
             currentIndex: 0,
             rounds: {},
+            lastActivityAt: serverTimestamp(),
           })
           return
         }
@@ -305,6 +358,7 @@ export function useGame(uid) {
             questions: [],
             rounds: {},
             currentIndex: 0,
+            lastActivityAt: serverTimestamp(),
           })
           return
         }
@@ -317,6 +371,7 @@ export function useGame(uid) {
           questions,
           currentIndex: 0,
           rounds: {},
+          lastActivityAt: serverTimestamp(),
         })
       })
     },
@@ -337,7 +392,7 @@ export function useGame(uid) {
         const playerUids = Object.keys(data.players || {})
         const allWritten = playerUids.every((u) => (prompts[u] || '').length > 0)
         if (!allWritten) {
-          tx.update(ref, { [`customPrompts.${uid}`]: (text || '').trim() })
+          tx.update(ref, { [`customPrompts.${uid}`]: (text || '').trim(), lastActivityAt: serverTimestamp() })
           return
         }
         const questions = buildTeamsSequence(data.config.packs, PACKS_BY_ID, prompts, gameTeams(data), PORTRAIT_PACK, undefined, data.config.audience || 'couple')
@@ -347,6 +402,7 @@ export function useGame(uid) {
           status: 'playing',
           currentIndex: 0,
           rounds: {},
+          lastActivityAt: serverTimestamp(),
         })
       })
     },
@@ -369,7 +425,7 @@ export function useGame(uid) {
         const round = normalizeCustomRound(data.rounds?.[idx])
         if (round.slots[slotKey].returned != null) return // déjà décidé
         round.slots[slotKey].returned = returned
-        tx.update(ref, { [`rounds.${idx}`]: round })
+        tx.update(ref, { [`rounds.${idx}`]: round, lastActivityAt: serverTimestamp() })
       })
     },
     [code, uid],
@@ -395,7 +451,7 @@ export function useGame(uid) {
         const allAnswered = data.questions.every((d, i) =>
           i === idx ? true : rounds[i]?.targetAnswer?.submitted === true,
         )
-        const update = { [`rounds.${idx}`]: round }
+        const update = { [`rounds.${idx}`]: round, lastActivityAt: serverTimestamp() }
         if (allAnswered) {
           update.status = 'playing'
           update.currentIndex = 0
@@ -438,7 +494,7 @@ export function useGame(uid) {
             round.consensus = consensus.value
             round.matched = isMatch(desc.q, consensus.value, round.targetAnswer?.value)
           }
-          tx.update(ref, { [`rounds.${idx}`]: round })
+          tx.update(ref, { [`rounds.${idx}`]: round, lastActivityAt: serverTimestamp() })
           return
         }
 
@@ -474,7 +530,7 @@ export function useGame(uid) {
               round.teamMatch[t.id] = isMatch(desc.q, round.answers[tUid]?.value, round.guesses[gUid]?.value)
             }
           }
-          tx.update(ref, { [`rounds.${idx}`]: round })
+          tx.update(ref, { [`rounds.${idx}`]: round, lastActivityAt: serverTimestamp() })
           return
         }
 
@@ -498,7 +554,7 @@ export function useGame(uid) {
             return rUids.every((u) => s.answers?.[u]?.submitted)
           })
           if (complete) round.revealed = true
-          tx.update(ref, { [`rounds.${idx}`]: round })
+          tx.update(ref, { [`rounds.${idx}`]: round, lastActivityAt: serverTimestamp() })
           return
         }
 
@@ -524,7 +580,7 @@ export function useGame(uid) {
             round.teamPartial[team.id] = !full && computePartialMatch(desc.q, round.answers, team.uids)
           }
         }
-        tx.update(ref, { [`rounds.${idx}`]: round })
+        tx.update(ref, { [`rounds.${idx}`]: round, lastActivityAt: serverTimestamp() })
       })
     },
     [code, uid],
@@ -538,7 +594,7 @@ export function useGame(uid) {
       const snap = await tx.get(ref)
       if (!snap.exists()) return
       const idx = snap.data().currentIndex
-      tx.update(ref, { [`rounds.${idx}.overrides.${uid}`]: true })
+      tx.update(ref, { [`rounds.${idx}.overrides.${uid}`]: true, lastActivityAt: serverTimestamp() })
     })
   }, [code, uid])
 
@@ -553,9 +609,9 @@ export function useGame(uid) {
       const idx = data.currentIndex
       if (!data.rounds?.[idx]?.revealed) return
       if (idx + 1 >= data.questions.length) {
-        tx.update(ref, { status: 'finished' })
+        tx.update(ref, { status: 'finished', lastActivityAt: serverTimestamp() })
       } else {
-        tx.update(ref, { currentIndex: idx + 1 })
+        tx.update(ref, { currentIndex: idx + 1, lastActivityAt: serverTimestamp() })
       }
     })
   }, [code])
@@ -566,7 +622,7 @@ export function useGame(uid) {
       const ref = gameDoc(code)
       const snap = await tx.get(ref)
       if (!snap.exists()) return
-      tx.update(ref, { status: 'lobby', questions: [], currentIndex: 0, rounds: {}, customPrompts: {} })
+      tx.update(ref, { status: 'lobby', questions: [], currentIndex: 0, rounds: {}, customPrompts: {}, lastActivityAt: serverTimestamp() })
     })
   }, [code])
 

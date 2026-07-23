@@ -5,13 +5,13 @@ rules_version = '2';
 //
 // Ces règles NE SONT PAS ouvertes/publiques :
 //  - toute opération exige une authentification (Anonymous Auth) ;
-//  - la lecture est limitée à `get` : on ne peut lire une partie QUE si l'on
-//    connaît son code (l'id du document). La lecture `list` est interdite,
-//    donc impossible d'énumérer ou d'aspirer l'ensemble des parties ;
+//  - la lecture d'UNE partie (`get`) suppose de connaître son code (l'id du
+//    document) ; l'énumération (`list`) reste totalement interdite ;
 //  - on ne peut créer une partie que si l'on s'y déclare comme hôte ;
 //  - on ne peut modifier une partie que si l'on y participe déjà, ou si l'on
-//    est en train de la rejoindre (2e joueur) ;
-//  - aucune suppression côté client.
+//    est en train de la rejoindre ;
+//  - suppression réservée au ménage des parties inactives et au dernier joueur
+//    qui quitte.
 //
 // (La lecture par un non-participant est nécessaire pour l'étape « rejoindre » :
 //  on lit d'abord la partie via son code avant de s'y ajouter. Elle reste
@@ -19,11 +19,26 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
+    // Une partie est « périmée » si sa dernière activité (rafraîchie à chaque
+    // écriture, champ `lastActivityAt`) remonte à plus de 15 min.
+    function isStale() {
+      return resource.data.lastActivityAt is timestamp
+             && resource.data.lastActivityAt < request.time - duration.value(15, 'm');
+    }
+
     // Tout le reste de la base est fermé par défaut (aucune règle → refus).
     match /games/{code} {
 
-      // Lecture d'UNE partie connue par son code uniquement (pas de `list`).
+      // Lecture d'UNE partie connue par son code uniquement.
       allow get: if request.auth != null;
+
+      // Pas d'énumération des parties (impossible d'aspirer/espionner les
+      // parties actives). Le ménage des rooms périmées ne se fait donc PAS par
+      // une requête côté client — Firestore refuse d'ailleurs toute règle `list`
+      // fondée sur `request.time`. Il est OPPORTUNISTE : un client qui observe
+      // une partie périmée (via son code) la supprime (voir `allow delete` +
+      // `isStale`). Une partie jamais rouverte subsiste jusqu'à un balayage
+      // serveur — politique TTL Firestore sur `lastActivityAt` (console).
       allow list: if false;
 
       // Création : le créateur doit se déclarer comme hôte.
@@ -40,8 +55,14 @@ service cloud.firestore {
                       || request.resource.data.players[request.auth.uid] != null
                     );
 
-      // Pas de suppression côté client (les parties expirent naturellement).
-      allow delete: if false;
+      // Suppression : soit la partie est périmée (ménage des rooms inactives),
+      // soit c'est le dernier participant qui quitte et vide la salle.
+      allow delete: if request.auth != null
+                    && (
+                      isStale()
+                      || (resource.data.players[request.auth.uid] != null
+                          && resource.data.players.size() == 1)
+                    );
     }
   }
 }
