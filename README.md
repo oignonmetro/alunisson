@@ -72,6 +72,31 @@ les deux joueurs.
 
 > Le fichier `.env` contient vos clés — il est ignoré par git (voir `.gitignore`).
 
+### Ménage des rooms inactives (15 min)
+
+Chaque partie porte un champ `lastActivityAt`, rafraîchi à chaque écriture. Une
+partie sans activité depuis plus de **15 min** est considérée périmée.
+
+Le nettoyage est **opportuniste, côté client** : dès qu'un joueur observe une
+partie périmée (en s'y reconnectant, ou en tentant de la rejoindre par son code),
+elle est supprimée. La règle de sécurité `isStale` (fondée sur l'horloge serveur
+`request.time`, dans [`firestore.rules`](./firestore.rules)) reste l'autorité :
+une partie réellement active ne peut jamais être supprimée. Rien à configurer —
+mais **pensez à redéployer les règles** (`firebase deploy --only firestore:rules`)
+pour que la suppression soit autorisée en production.
+
+> Firestore refuse toute règle `list` fondée sur `request.time` : on ne peut donc
+> pas énumérer les parties périmées côté client, d'où l'approche opportuniste.
+
+**Filet de sécurité optionnel — politique TTL.** Une partie *jamais* rouverte
+(aucun onglet pour la revoir) n'a personne pour déclencher sa suppression. Pour
+purger aussi ces documents-là, activez une **politique TTL Firestore** sur le
+champ `lastActivityAt` : *Console Firebase → Firestore → onglet TTL → « Créer une
+politique »*, collection `games`, champ `lastActivityAt`. Firestore supprimera
+alors automatiquement les documents expirés (délai réel indicatif : jusqu'à ~24 h,
+donc complémentaire du ménage à 15 min, pas un substitut). Non déployable depuis
+le dépôt : c'est un réglage de la console.
+
 ### Déploiement sur GitHub Pages (recommandé)
 
 Le jeu se déploie automatiquement sur **GitHub Pages** via GitHub Actions
